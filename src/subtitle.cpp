@@ -55,7 +55,14 @@ void subtitle::put_verse(verse &&v, merge_method const &mm) {
       content = v.content + "\n" + current_verse->content;
       break;
     case merge_method::LEFT_TO_RIGHT:
-
+      auto max_content = std::max(v.content, current_verse->content);
+      size_t len = max_content.content.size();
+      std::string line;
+      for (size_t i = 0, j = 0; i < len;
+           j = i, i = max_content.content.find('\n', i)) {
+        content += current_verse->content.substr(j, i) + " ---- " +
+                   v.content.substr(j, i);
+      }
       break;
     case merge_method::RIGHT_TO_LEFT:
 

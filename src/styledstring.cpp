@@ -3,7 +3,6 @@
 
 using namespace subman;
 
-
 template <class Format>
 auto styledstring::styled() const -> decltype(Format::paint_style) {
   return Format::paint_styled(this);
@@ -119,4 +118,11 @@ styledstring operator+(std::string &&str, styledstring const &sstr) {
 }
 styledstring operator+(std::string const &str, styledstring &&sstr) {
   return styledstring::add(std::string(str), std::move(sstr));
+}
+
+styledstring styledstring::substr(size_t const &a, size_t const &b) const {
+  styledstring tmp{*this};
+  tmp.content = tmp.content.substr(a, b);
+  for ()
+    return tmp;
 }

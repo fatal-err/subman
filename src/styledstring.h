@@ -1,9 +1,9 @@
 #ifndef STYLEDSTRING_H
 #define STYLEDSTRING_H
 
-#include <vector>
-#include <string>
 #include <map>
+#include <string>
+#include <vector>
 
 namespace subman {
 
@@ -29,6 +29,8 @@ struct styledstring {
   styledstring operator+(styledstring const &sstr) const;
   styledstring operator+(std::string &&str) const;
   styledstring operator+(std::string const &str) const;
+
+  styledstring substr(size_t const &a, size_t const &b) const;
 };
 
 styledstring operator+(std::string const &str, styledstring const &sstr);
