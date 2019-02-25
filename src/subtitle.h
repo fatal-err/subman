@@ -1,232 +1,49 @@
 #ifndef SUBTITLE_H
 #define SUBTITLE_H
 
-#include <string>
-#include <vector>
-#include <chrono>
+#include "duration.h"
+#include "styledstring.h"
+#include "verse.h"
+#include <set>
+
+/**
+ * This file should be free of any format specific subtitle.
+ * Here's a completely general thing that every formats in this project
+ * will try to convert inputs and outputs to this general format, so
+ * we would only need to do things once.
+ */
 
 namespace subman {
 
-enum class language {
-  AB,
-  AA,
-  AF,
-  AK,
-  SQ,
-  AM,
-  AR,
-  AN,
-  HY,
-  AS,
-  AV,
-  AE,
-  AY,
-  AZ,
-  BM,
-  BA,
-  EU,
-  BE,
-  BN,
-  BH,
-  BI,
-  BS,
-  BR,
-  BG,
-  MY,
-  CA,
-  CH,
-  CE,
-  NY,
-  ZH,
-  CV,
-  KW,
-  CO,
-  CR,
-  HR,
-  CS,
-  DA,
-  DV,
-  NL,
-  DZ,
-  EN,
-  EO,
-  ET,
-  EE,
-  FO,
-  FJ,
-  FI,
-  FR,
-  FF,
-  GL,
-  KA,
-  DE,
-  EL,
-  GN,
-  GU,
-  HT,
-  HA,
-  HE,
-  HZ,
-  HI,
-  HO,
-  HU,
-  IA,
-  ID,
-  IE,
-  GA,
-  IG,
-  IK,
-  IO,
-  IS,
-  IT,
-  IU,
-  JA,
-  JV,
-  KL,
-  KN,
-  KR,
-  KS,
-  KK,
-  KM,
-  KI,
-  RW,
-  KY,
-  KV,
-  KG,
-  KO,
-  KU,
-  KJ,
-  LA,
-  LB,
-  LG,
-  LI,
-  LN,
-  LO,
-  LT,
-  LU,
-  LV,
-  GV,
-  MK,
-  MG,
-  MS,
-  ML,
-  MT,
-  MI,
-  MR,
-  MH,
-  MN,
-  NA,
-  NV,
-  ND,
-  NE,
-  NG,
-  NB,
-  NN,
-  NO,
-  II,
-  NR,
-  OC,
-  OJ,
-  CU,
-  OM,
-  OR,
-  OS,
-  PA,
-  PI,
-  FA,
-  PL,
-  PS,
-  PT,
-  QU,
-  RM,
-  RN,
-  RO,
-  RU,
-  SA,
-  SC,
-  SD,
-  SE,
-  SM,
-  SG,
-  SR,
-  GD,
-  SN,
-  SI,
-  SK,
-  SL,
-  SO,
-  ST,
-  ES,
-  SU,
-  SW,
-  SS,
-  SV,
-  TA,
-  TE,
-  TG,
-  TH,
-  TI,
-  BO,
-  TK,
-  TL,
-  TN,
-  TO,
-  TR,
-  TS,
-  TT,
-  TW,
-  TY,
-  UG,
-  UK,
-  UR,
-  UZ,
-  VE,
-  VI,
-  VO,
-  WA,
-  CY,
-  WO,
-  FY,
-  XH,
-  YI,
-  YO,
-  ZA,
-  ZU
+enum class merge_method {
+  TOP_TO_BOTTOM,
+  BOTTOM_TO_TOP,
+  LEFT_TO_RIGHT,
+  RIGHT_TO_LEFT
 };
 
-struct verse {
-  language languageCode;
-  std::string content;
-};
-
-class portion {
-private:
-  std::vector<verse> verses;
-  std::chrono::nanoseconds duration;
-public:
-  bool operator<(portion const&);
-  bool operator>(portion const&);
-  bool operator>=(portion const&);
-  bool operator<=(portion const&);
-  bool operator==(portion const&);
-};
-
-
-class subtitle;
-subtitle merge(subtitle const &sub1, subtitle const &sub2);
-
+/**
+ * @brief The subtitle class
+ */
 class subtitle {
-  std::vector<portion> portions;
+  std::set<verse> verses;
 
 public:
   subtitle();
-  void writeTo(std::ostream &output);
-
-  friend subtitle merge(subtitle const &sub1, subtitle const &sub2);
+  void put_verse(verse const &v);
+  void put_verse(verse &&v, merge_method const &mm =
+                                merge_method::TOP_TO_BOTTOM); // move semantic
+  std::set<verse> get_verses() const { return verses; }
 };
 
-subtitle load(std::string const & filepath);
-
+/**
+ * @brief merge two subtitles together
+ * @param sub1
+ * @param sub2
+ * @return
+ */
+subtitle merge(subtitle const &sub1, subtitle const &sub2,
+               merge_method const &mm = merge_method::TOP_TO_BOTTOM);
 
 } // namespace subman
 

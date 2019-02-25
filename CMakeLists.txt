@@ -12,7 +12,11 @@ set(Boost_USE_STATIC_RUNTIME    OFF)
 find_package(Boost 1.66.0 COMPONENTS program_options filesystem)
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
-  add_executable(${exec_name} src/main.cpp src/subtitle.cpp)
+  add_executable(${exec_name}
+    src/main.cpp
+    src/subtitle.cpp
+    src/formats/subrip.cpp
+    )
   target_link_libraries(${exec_name} ${Boost_LIBRARIES})
 endif()
 
