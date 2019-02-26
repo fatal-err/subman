@@ -135,3 +135,43 @@ void styledstring::shift_ranges(long const &shift) {
     }
   }
 }
+
+styledstring &&styledstring::operator+=(styledstring &&sstr) && {
+  using std::begin;
+  using std::end;
+  content += move(sstr.content);
+  sstr.shift_ranges(static_cast<long>(content.size()));
+  std::move(begin(sstr.italics), end(sstr.italics),
+            std::back_inserter(italics));
+  std::move(begin(sstr.bolds), end(sstr.bolds), std::back_inserter(bolds));
+  std::move(begin(sstr.underlined), end(sstr.underlined),
+            std::back_inserter(underlined));
+  std::move(begin(sstr.colors), end(sstr.colors), std::back_inserter(colors));
+  std::move(begin(sstr.fontsizes), end(sstr.fontsizes),
+            std::back_inserter(fontsizes));
+  return std::move(*this);
+}
+styledstring &styledstring::operator+=(std::string const &str) & {
+  content += str;
+  return *this;
+}
+styledstring &&styledstring::operator+=(std::string &&str) && {
+  content += std::move(str);
+  return std::move(*this);
+}
+styledstring &styledstring::operator+=(styledstring const &sstr) & {
+  styledstring tmp{sstr};
+  content += std::move(tmp.content);
+  tmp.shift_ranges(static_cast<long>(content.size()));
+  std::move(std::begin(tmp.italics), std::end(tmp.italics),
+            std::back_inserter(italics));
+  std::move(std::begin(tmp.bolds), std::end(tmp.bolds),
+            std::back_inserter(bolds));
+  std::move(std::begin(tmp.underlined), std::end(tmp.underlined),
+            std::back_inserter(underlined));
+  std::move(std::begin(tmp.colors), std::end(tmp.colors),
+            std::back_inserter(colors));
+  std::move(std::begin(tmp.fontsizes), std::end(tmp.fontsizes),
+            std::back_inserter(fontsizes));
+  return *this;
+}

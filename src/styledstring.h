@@ -30,9 +30,13 @@ struct styledstring {
   styledstring operator+(styledstring const &sstr) const;
   styledstring operator+(std::string &&str) const;
   styledstring operator+(std::string const &str) const;
+  styledstring &operator+=(std::string const &str) &;
+  styledstring &&operator+=(std::string &&str) &&;
+  styledstring &operator+=(styledstring const &sstr) &;
+  styledstring &&operator+=(styledstring &&sstr) &&;
 
   styledstring substr(size_t const &a, size_t const &b) const;
-  void shift_ranges(size_t const &shift);
+  void shift_ranges(long const &shift);
 };
 
 styledstring operator+(std::string const &str, styledstring const &sstr);
