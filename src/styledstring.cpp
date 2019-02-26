@@ -37,8 +37,7 @@ styledstring styledstring::operator+(styledstring &&sstr) const {
   using std::get;
   using std::move;
   typedef std::tuple<std::vector<range>, std::vector<range>> t;
-  typedef std::tuple<std::map<range, std::string>, std::map<range, std::string>>
-      mt;
+  typedef std::tuple<std::vector<attr>, std::vector<attr>> mt;
 
   styledstring tmp = *this; // copy this
   size_t first_string_length = tmp.content.size();
@@ -85,25 +84,8 @@ styledstring styledstring::operator+(std::string const &str) const {
 }
 
 styledstring &&styledstring::add(std::string &&str, styledstring &&sstr) {
-  typedef std::tuple<std::vector<styledstring::range>> t;
   sstr.content = std::move(str) + sstr.content;
-  auto s = str.size();
-  for (auto crange : {sstr.underlined, sstr.bolds, sstr.italics}) {
-    for (auto r : crange) {
-      r.first += s;
-      r.second += s;
-    }
-  }
-  for (auto crange : {sstr.colors, sstr.fontsizes}) {
-    for (auto r : crange) {
-      styledstring::range q = r.first;
-      styledstring::range key = r.first;
-      q.first += s;
-      q.second += s;
-      crange[q] = std::move(r.second);
-      crange.erase(key);
-    }
-  }
+  sstr.shift_ranges(static_cast<long>(str.size()));
   return std::move(sstr);
 }
 styledstring &&operator+(std::string &&str, styledstring &&sstr) {
@@ -122,7 +104,34 @@ styledstring operator+(std::string const &str, styledstring &&sstr) {
 
 styledstring styledstring::substr(size_t const &a, size_t const &b) const {
   styledstring tmp{*this};
-  tmp.content = tmp.content.substr(a, b);
-  for ()
-    return tmp;
+  auto len = tmp.content.size();
+  tmp.content = tmp.content.substr(a, std::min(len, b));
+  if (a > 0)
+    tmp.shift_ranges(static_cast<long>(a) * -1);
+  return tmp;
+}
+
+void styledstring::shift_ranges(long const &shift) {
+
+  long len = static_cast<long>(content.size());
+
+  // transform "bolds" and "underlines" and "italics"
+  for (auto crange : {bolds, underlined, italics}) {
+    for (auto r : crange) {
+      r.first = static_cast<size_t>(
+          std::max(0l, std::min(len, static_cast<long>(r.first) + shift)));
+      r.second = static_cast<size_t>(
+          std::max(0l, std::min(len, static_cast<long>(r.second) + shift)));
+    }
+  }
+
+  // transforming "colors" and "fontsizes"
+  for (auto crange : {colors, fontsizes}) {
+    for (auto r : crange) {
+      r.first.first = static_cast<size_t>(std::max(
+          0l, std::min(len, static_cast<long>(r.first.first) + shift)));
+      r.first.second = static_cast<size_t>(std::max(
+          0l, std::min(len, static_cast<long>(r.first.second) + shift)));
+    }
+  }
 }

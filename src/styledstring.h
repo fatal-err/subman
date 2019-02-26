@@ -9,12 +9,13 @@ namespace subman {
 
 struct styledstring {
   typedef std::pair<size_t, size_t> range;
+  typedef std::pair<range, std::string> attr;
 
   std::vector<range> underlined;
   std::vector<range> bolds;
   std::vector<range> italics;
-  std::map<range, std::string> colors;
-  std::map<range, std::string> fontsizes;
+  std::vector<attr> colors;
+  std::vector<attr> fontsizes;
   std::string content;
 
   styledstring() = default;
@@ -31,6 +32,7 @@ struct styledstring {
   styledstring operator+(std::string const &str) const;
 
   styledstring substr(size_t const &a, size_t const &b) const;
+  void shift_ranges(size_t const &shift);
 };
 
 styledstring operator+(std::string const &str, styledstring const &sstr);

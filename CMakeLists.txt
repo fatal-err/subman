@@ -17,6 +17,9 @@ if(Boost_FOUND)
     src/subtitle.cpp
     src/formats/subrip.cpp
     src/styledstring.cpp
+    src/duration.cpp
+    src/formats/subrip.cpp
+    src/verse.cpp
     )
   target_link_libraries(${exec_name} ${Boost_LIBRARIES})
 endif()
