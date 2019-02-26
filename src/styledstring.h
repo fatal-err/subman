@@ -11,7 +11,7 @@ struct styledstring {
   typedef std::pair<size_t, size_t> range;
   typedef std::pair<range, std::string> attr;
 
-  std::vector<range> underlined;
+  std::vector<range> underlineds;
   std::vector<range> bolds;
   std::vector<range> italics;
   std::vector<attr> colors;
@@ -37,6 +37,7 @@ struct styledstring {
 
   styledstring substr(size_t const &a, size_t const &b) const;
   void shift_ranges(long const &shift);
+  void clear();
 };
 
 styledstring operator+(std::string const &str, styledstring const &sstr);

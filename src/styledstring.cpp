@@ -45,7 +45,7 @@ styledstring styledstring::operator+(styledstring &&sstr) const {
 
   // transform "bolds" and "underlines" and "italics"
   for (auto crange :
-       {t{sstr.bolds, tmp.bolds}, t{sstr.underlined, tmp.underlined},
+       {t{sstr.bolds, tmp.bolds}, t{sstr.underlineds, tmp.underlineds},
         t{sstr.italics, tmp.italics}}) {
     get<1>(crange).reserve(get<0>(crange).size() +
                            get<1>(crange).size()); // performance shit
@@ -116,7 +116,7 @@ void styledstring::shift_ranges(long const &shift) {
   long len = static_cast<long>(content.size());
 
   // transform "bolds" and "underlines" and "italics"
-  for (auto crange : {bolds, underlined, italics}) {
+  for (auto crange : {bolds, underlineds, italics}) {
     for (auto r : crange) {
       r.first = static_cast<size_t>(
           std::max(0l, std::min(len, static_cast<long>(r.first) + shift)));
@@ -144,8 +144,8 @@ styledstring &&styledstring::operator+=(styledstring &&sstr) && {
   std::move(begin(sstr.italics), end(sstr.italics),
             std::back_inserter(italics));
   std::move(begin(sstr.bolds), end(sstr.bolds), std::back_inserter(bolds));
-  std::move(begin(sstr.underlined), end(sstr.underlined),
-            std::back_inserter(underlined));
+  std::move(begin(sstr.underlineds), end(sstr.underlineds),
+            std::back_inserter(underlineds));
   std::move(begin(sstr.colors), end(sstr.colors), std::back_inserter(colors));
   std::move(begin(sstr.fontsizes), end(sstr.fontsizes),
             std::back_inserter(fontsizes));
@@ -167,11 +167,20 @@ styledstring &styledstring::operator+=(styledstring const &sstr) & {
             std::back_inserter(italics));
   std::move(std::begin(tmp.bolds), std::end(tmp.bolds),
             std::back_inserter(bolds));
-  std::move(std::begin(tmp.underlined), std::end(tmp.underlined),
-            std::back_inserter(underlined));
+  std::move(std::begin(tmp.underlineds), std::end(tmp.underlineds),
+            std::back_inserter(underlineds));
   std::move(std::begin(tmp.colors), std::end(tmp.colors),
             std::back_inserter(colors));
   std::move(std::begin(tmp.fontsizes), std::end(tmp.fontsizes),
             std::back_inserter(fontsizes));
   return *this;
+}
+
+void styledstring::clear() {
+  content.clear();
+  italics.clear();
+  bolds.clear();
+  underlineds.clear();
+  colors.clear();
+  fontsizes.clear();
 }

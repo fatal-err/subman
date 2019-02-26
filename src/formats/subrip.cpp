@@ -61,7 +61,7 @@ subman::subtitle subrip::to_subtitle(std::ifstream &stream) {
   if (stream) {
     subtitle sub;
     duration dur;
-    std::string content;
+    styledstring content;
     std::string line;
     while (std::getline(stream, line)) {
       if (line.empty()) {

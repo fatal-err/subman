@@ -1,8 +1,6 @@
 #include "subtitle.h"
-#include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 #include <exception>
-#include <regex>
 #include <tuple>
 
 using namespace subman;
