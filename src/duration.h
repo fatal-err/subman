@@ -39,5 +39,4 @@ struct duration {
 };
 } // namespace subman
 
-
 #endif // DURATION_H

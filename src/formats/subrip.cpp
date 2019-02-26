@@ -91,6 +91,20 @@ void subrip::write(subman::subtitle const &sub, std::ostream &out) {
   int i = 1;
   for (auto v : sub.get_verses())
     out << (i++) << '\n'
-        << subrip::to_string(v.timestamps) << '\n'
-        << v.content << '\n';
+        << subrip::to_string(v.timestamps).c_str() << '\n'
+        << v.content.styled<subrip>().c_str() << '\n';
+}
+
+std::string subrip::paint_style(styledstring const &sstr) {
+  using namespace std;
+  std::stringstream str;
+  auto len = sstr.content.size();
+  auto starts = {begin(sstr.bolds), begin(sstr.italics), begin(sstr.colors),
+                 begin(sstr.fontsizes), begin(sstr.underlineds)};
+  for (size_t i = 0; i < len;) {
+    auto j = min(starts);
+    for (auto s : starts)
+      if (s == j)
+  }
+  return str.str();
 }

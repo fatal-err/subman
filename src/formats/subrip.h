@@ -14,8 +14,8 @@ public:
   static subman::duration to_duration(std::string const &str);
   static subman::subtitle to_subtitle(std::ifstream &stream);
   static void write(subman::subtitle const &sub, std::ostream &out);
+  static std::string paint_style(styledstring const &sstr);
 };
-
 
 } // namespace formats
 } // namespace subman
