@@ -1,7 +1,7 @@
 #include "styledstring.h"
 #include <algorithm>
 
-using namespace subman;
+using subman::styledstring;
 
 template <class Format>
 auto styledstring::styled() const -> decltype(Format::paint_style) {
@@ -36,12 +36,12 @@ styledstring styledstring::operator+(styledstring &&sstr) const {
   using std::end;
   using std::get;
   using std::move;
-  typedef std::tuple<std::vector<range>, std::vector<range>> t;
-  typedef std::tuple<std::vector<attr>, std::vector<attr>> mt;
+  using t = std::tuple<std::vector<range>, std::vector<range>>;
+  using mt = std::tuple<std::vector<attr>, std::vector<attr>>;
 
   styledstring tmp = *this; // copy this
   size_t first_string_length = tmp.content.size();
-  tmp.content += move(sstr.content);
+  tmp.content += sstr.content;
 
   // transform "bolds" and "underlines" and "italics"
   for (auto crange :
@@ -76,7 +76,7 @@ styledstring styledstring::operator+(styledstring const &sstr) const {
 }
 styledstring styledstring::operator+(std::string &&str) const {
   styledstring tmp{*this};
-  tmp.content += std::move(str);
+  tmp.content += str;
   return tmp;
 }
 styledstring styledstring::operator+(std::string const &str) const {
@@ -106,32 +106,33 @@ styledstring styledstring::substr(size_t const &a, size_t const &b) const {
   styledstring tmp{*this};
   auto len = tmp.content.size();
   tmp.content = tmp.content.substr(a, std::min(len, b));
-  if (a > 0)
-    tmp.shift_ranges(static_cast<long>(a) * -1);
+  if (a > 0) {
+    tmp.shift_ranges(static_cast<int64_t>(a) * -1);
+  }
   return tmp;
 }
 
-void styledstring::shift_ranges(long const &shift) {
+void styledstring::shift_ranges(int64_t const &shift) {
 
-  long len = static_cast<long>(content.size());
+  auto len = static_cast<int64_t>(content.size());
 
   // transform "bolds" and "underlines" and "italics"
-  for (auto crange : {bolds, underlineds, italics}) {
+  for (auto const &crange : {bolds, underlineds, italics}) {
     for (auto r : crange) {
       r.first = static_cast<size_t>(
-          std::max(0l, std::min(len, static_cast<long>(r.first) + shift)));
+          std::max(0l, std::min(len, static_cast<int64_t>(r.first) + shift)));
       r.second = static_cast<size_t>(
-          std::max(0l, std::min(len, static_cast<long>(r.second) + shift)));
+          std::max(0l, std::min(len, static_cast<int64_t>(r.second) + shift)));
     }
   }
 
   // transforming "colors" and "fontsizes"
-  for (auto crange : {colors, fontsizes}) {
+  for (auto const &crange : {colors, fontsizes}) {
     for (auto r : crange) {
       r.first.first = static_cast<size_t>(std::max(
-          0l, std::min(len, static_cast<long>(r.first.first) + shift)));
+          0l, std::min(len, static_cast<int64_t>(r.first.first) + shift)));
       r.first.second = static_cast<size_t>(std::max(
-          0l, std::min(len, static_cast<long>(r.first.second) + shift)));
+          0l, std::min(len, static_cast<int64_t>(r.first.second) + shift)));
     }
   }
 }
@@ -139,8 +140,8 @@ void styledstring::shift_ranges(long const &shift) {
 styledstring &&styledstring::operator+=(styledstring &&sstr) && {
   using std::begin;
   using std::end;
-  content += move(sstr.content);
-  sstr.shift_ranges(static_cast<long>(content.size()));
+  content += sstr.content;
+  sstr.shift_ranges(static_cast<int64_t>(content.size()));
   std::move(begin(sstr.italics), end(sstr.italics),
             std::back_inserter(italics));
   std::move(begin(sstr.bolds), end(sstr.bolds), std::back_inserter(bolds));
@@ -156,13 +157,13 @@ styledstring &styledstring::operator+=(std::string const &str) & {
   return *this;
 }
 styledstring &&styledstring::operator+=(std::string &&str) && {
-  content += std::move(str);
+  content += str;
   return std::move(*this);
 }
 styledstring &styledstring::operator+=(styledstring const &sstr) & {
   styledstring tmp{sstr};
-  content += std::move(tmp.content);
-  tmp.shift_ranges(static_cast<long>(content.size()));
+  content += tmp.content;
+  tmp.shift_ranges(static_cast<int64_t>(content.size()));
   std::move(std::begin(tmp.italics), std::end(tmp.italics),
             std::back_inserter(italics));
   std::move(std::begin(tmp.bolds), std::end(tmp.bolds),
