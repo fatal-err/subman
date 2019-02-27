@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.12)
 project(subman)
 set(exec_name subman)
 
+set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
 
 set(Boost_USE_STATIC_LIBS        ON)  # only find static libs
 set(Boost_USE_DEBUG_LIBS         OFF) # ignore debug libs and

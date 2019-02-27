@@ -1,5 +1,5 @@
-#ifndef SUBRIP_H
-#define SUBRIP_H
+#ifndef FORMAT_SUBRIP_H
+#define FORMAT_SUBRIP_H
 
 #include "../subtitle.h"
 #include <string>
@@ -20,4 +20,5 @@ public:
 } // namespace formats
 } // namespace subman
 
-#endif // SUBRIP_H
+#endif // FORMAT_SUBRIP_H
+

@@ -1,4 +1,5 @@
 #include "subrip.h"
+#include <boost/any.hpp>
 #include <boost/lexical_cast.hpp>
 #include <chrono>
 #include <fstream>
@@ -9,7 +10,7 @@ using namespace subman::formats;
 std::string subrip::to_string(subman::duration const &timestamps) {
   auto from = timestamps.from, to = timestamps.to;
   std::stringstream buffer;
-  long hour, min, sec, ns, tmp;
+  int64_t hour, min, sec, ns, tmp;
   tmp = from.count();
   hour = tmp / 60 / 60 / 1000;
   tmp -= hour * 60 * 60 * 1000;
@@ -17,7 +18,7 @@ std::string subrip::to_string(subman::duration const &timestamps) {
   tmp -= min * 60 * 1000;
   sec = tmp / 1000;
   ns = tmp - sec * 1000;
-  buffer << hour << ':' << min << ':' << sec << ',' << ns; // from
+  buffer << hour << ':' << min << ':' << sec << ',' << ns;  // from
   buffer << " --> ";
 
   tmp = to.count();
@@ -27,7 +28,7 @@ std::string subrip::to_string(subman::duration const &timestamps) {
   tmp -= min * 60 * 1000;
   sec = tmp / 1000;
   ns = tmp - sec * 1000;
-  buffer << hour << ':' << min << ':' << sec << ',' << ns; // from
+  buffer << hour << ':' << min << ':' << sec << ',' << ns;  // from
   return buffer.str();
 }
 
@@ -38,17 +39,18 @@ subman::duration subrip::to_duration(std::string const &str) {
   if (std::regex_search(str, match, durstr)) {
     if (match.ready()) {
       auto from_ns =
-          boost::lexical_cast<long>(match[1]) * 60 * 60 * 1000;   // hour
-      from_ns += boost::lexical_cast<long>(match[2]) * 60 * 1000; // min
-      from_ns += (boost::lexical_cast<long>(match[3]) * 1000 +
-                  boost::lexical_cast<long>(match[4])) *
-                 1000; // sec
+          boost::lexical_cast<int64_t>(match[1]) * 60 * 60 * 1000;    // hour
+      from_ns += boost::lexical_cast<int64_t>(match[2]) * 60 * 1000;  // min
+      from_ns += (boost::lexical_cast<int64_t>(match[3]) * 1000 +
+                  boost::lexical_cast<int64_t>(match[4])) *
+                 1000;  // sec
 
-      auto to_ns = boost::lexical_cast<long>(match[5]) * 60 * 60 * 1000; // hour
-      to_ns += boost::lexical_cast<long>(match[6]) * 60 * 1000;          // min
-      to_ns += (boost::lexical_cast<long>(match[7]) * 1000 +
-                boost::lexical_cast<long>(match[8])) *
-               1000; // sec
+      auto to_ns =
+          boost::lexical_cast<int64_t>(match[5]) * 60 * 60 * 1000;  // hour
+      to_ns += boost::lexical_cast<int64_t>(match[6]) * 60 * 1000;  // min
+      to_ns += (boost::lexical_cast<int64_t>(match[7]) * 1000 +
+                boost::lexical_cast<int64_t>(match[8])) *
+               1000;  // sec
       return subman::duration{std::chrono::nanoseconds(from_ns),
                               std::chrono::nanoseconds(to_ns)};
     }
@@ -57,7 +59,7 @@ subman::duration subrip::to_duration(std::string const &str) {
 }
 
 subman::subtitle subrip::to_subtitle(std::ifstream &stream) {
-  using namespace subman;
+  using subman::styledstring;
   if (stream) {
     subtitle sub;
     duration dur;
@@ -72,22 +74,23 @@ subman::subtitle subrip::to_subtitle(std::ifstream &stream) {
         try {
           dur = to_duration(line);
         } catch (std::invalid_argument const &) {
-          if (!dur.is_zero())
+          if (!dur.is_zero()) {
             content += line;
+          }
           // if it's not a valid duration, then it's a number or a blank
           // line which we just don't care.
         }
       }
     }
     return sub;
-  } else {
-    throw std::invalid_argument("Cannot read the content of the file.");
   }
+  throw std::invalid_argument("Cannot read the content of the file.");
 }
 
 void subrip::write(subman::subtitle const &sub, std::ostream &out) {
-  if (!out)
+  if (!out) {
     throw std::invalid_argument("Cannot write data into stream");
+  }
   int i = 1;
   for (auto v : sub.get_verses())
     out << (i++) << '\n'
@@ -96,15 +99,18 @@ void subrip::write(subman::subtitle const &sub, std::ostream &out) {
 }
 
 std::string subrip::paint_style(styledstring const &sstr) {
-  using namespace std;
+  using std::begin;
+  using std::end;
+  using std::move;
   std::stringstream str;
   auto len = sstr.content.size();
-  auto starts = {begin(sstr.bolds), begin(sstr.italics), begin(sstr.colors),
-                 begin(sstr.fontsizes), begin(sstr.underlineds)};
+  auto starts{&sstr.bolds, &sstr.italics,
+                                 &sstr.underlineds, &sstr.colors,
+                                 &sstr.fontsizes};
   for (size_t i = 0; i < len;) {
-    auto j = min(starts);
-    for (auto s : starts)
-      if (s == j)
+    auto m = std::min_element(starts.begin(), starts.end(),
+                              [&](auto const &a, auto const 
+                              });
   }
   return str.str();
 }
