@@ -1,9 +1,9 @@
 #ifndef STYLEDSTRING_H
 #define STYLEDSTRING_H
 
+#include <set>
 #include <string>
 #include <tuple>
-#include <vector>
 
 namespace subman {
 
@@ -35,7 +35,7 @@ struct attr {
 };
 
 class styledstring {
-  std::vector<attr> attrs;
+  std::set<attr> attrs;
   std::string content;
 
 public:
@@ -63,6 +63,9 @@ public:
   void shift_ranges(int64_t const &shift) noexcept;
   void clear() noexcept;
 
+  void put_attribute(attr const &a) noexcept(false);
+  void put_attribute(attr &&a) noexcept(false);
+
   void bold(range &&r) noexcept(false);
   void bold(range const &r) noexcept(false);
 
@@ -82,7 +85,7 @@ public:
   void color(range &&r, std::string const &_color) noexcept(false);
   void color(range const &r, std::string const &_color) noexcept(false);
 
-  auto get_attrs() const noexcept -> std::vector<attr> const & { return attrs; }
+  auto get_attrs() const noexcept -> std::set<attr> const & { return attrs; }
   auto get_content() const noexcept -> std::string const & { return content; }
 };
 

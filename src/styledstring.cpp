@@ -131,20 +131,38 @@ void styledstring::clear() noexcept {
   attrs.clear();
 }
 
+void styledstring::put_attribute(attr &&a) noexcept(false) {
+  if (a.pos.start >= content.size() || a.pos.finish > content.size())
+    throw std::invalid_argument(
+        "The specified range is not valid in this context.");
+
+  // we are promising that the subtitles will not collide with each other
+  auto place = attrs.equal_range(a);
+  for (auto it = place.first; a.pos.is_collided(it->pos); ++it) {
+    if (it->pos.in_between(a.pos)) {
+    }
+  }
+
+  // there's no collision
+  attrs.emplace_hint(++place.first, std::move(a));
+}
+
+void styledstring::put_attribute(attr const &a) noexcept(false) {
+  put_attribute(attr{a});
+}
+
 void styledstring::bold(range &&r) noexcept(false) {
-  if (r.start >= content.size() || r.finish > content.size())
-    throw std::invalid_argument("The specified range is not right.");
-  attrs.emplace_back(attr{std::move(r), "b", nullptr});
+  put_attribute(attr{std::move(r), "b", nullptr});
 }
 void styledstring::underline(range &&r) noexcept(false) {
-  attrs.emplace_back(attr{std::move(r), "u", nullptr});
+  put_attribute(attr{std::move(r), "u", nullptr});
 }
 void styledstring::color(range &&r, std::string &&_color) noexcept(false) {
-  attrs.emplace_back(attr{std::move(r), "color", std::move(_color)});
+  put_attribute(attr{std::move(r), "color", std::move(_color)});
 }
 void styledstring::fontsize(range &&r,
                             std::string &&_fontsize) noexcept(false) {
-  attrs.emplace_back(attr{std::move(r), "fontsize", std::move(_fontsize)});
+  put_attribute(attr{std::move(r), "fontsize", std::move(_fontsize)});
 }
 void styledstring::color(range const &r, std::string &&_color) noexcept(false) {
   color(range{r}, std::move(_color));

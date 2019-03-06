@@ -46,7 +46,7 @@ void subtitle::put_verse(verse &&v, merge_method const &mm) {
 
     styledstring content;
     auto max_content = std::max(v.content, current_verse->content);
-    size_t len = max_content.content.size();
+    size_t len = max_content.get_content().size();
     switch (mm) {
     case merge_method::TOP_TO_BOTTOM:
       content = current_verse->content + "\n" + v.content;
@@ -56,14 +56,14 @@ void subtitle::put_verse(verse &&v, merge_method const &mm) {
       break;
     case merge_method::LEFT_TO_RIGHT:
       for (size_t i = 0, j = 0; i < len;
-           j = i, i = max_content.content.find('\n', i)) {
+           j = i, i = max_content.get_content().find('\n', i)) {
         content += current_verse->content.substr(j, i) + " ---- " +
                    v.content.substr(j, i);
       }
       break;
     case merge_method::RIGHT_TO_LEFT:
       for (size_t i = 0, j = 0; i < len;
-           j = i, i = max_content.content.find('\n', i)) {
+           j = i, i = max_content.get_content().find('\n', i)) {
         content += v.content.substr(j, i) + " ---- " +
                    current_verse->content.substr(j, i);
       }
