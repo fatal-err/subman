@@ -137,14 +137,30 @@ void styledstring::put_attribute(attr &&a) noexcept(false) {
         "The specified range is not valid in this context.");
 
   // we are promising that the subtitles will not collide with each other
-  auto place = attrs.equal_range(a);
-  for (auto it = place.first; a.pos.is_collided(it->pos); ++it) {
-    if (it->pos.in_between(a.pos)) {
+  for (auto it = begin(attrs); it != attrs.end(); ++it) {
+    if (!it->pos.is_collided(a.pos))
+      continue;
+    if (*it == a) { // it's useless to insert something that it's already there
+      return;       // ignore the whole thing
+    }
+    if (it->pos == a.pos && it->name == a.name && it->value != a.value) {
+      it->value = a.value;
+      return; // done with it
+    }
+    if (it->name == a.name && it->value == a.value &&
+        it->pos.is_collided(a.pos)) {
+      auto _min = std::min(it->pos.start, a.pos.start);
+      auto _max = std::max(it->pos.finish, a.pos.finish);
+      it->pos.start = _min;
+      it->pos.finish = _max;
+
+      // TODO: this process may result in generating two collided attributes
+      return; // done with this thing too
     }
   }
 
   // there's no collision
-  attrs.emplace_hint(++place.first, std::move(a));
+  attrs.emplace_back(std::move(a));
 }
 
 void styledstring::put_attribute(attr const &a) noexcept(false) {

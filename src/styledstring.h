@@ -1,7 +1,7 @@
 #ifndef STYLEDSTRING_H
 #define STYLEDSTRING_H
 
-#include <set>
+#include <list>
 #include <string>
 #include <tuple>
 
@@ -22,7 +22,7 @@ struct range {
 };
 
 struct attr {
-  range pos;
+  range pos; // pos is not mutable since it will be used in sorting in std::set
   std::string name;
   std::string value;
 
@@ -35,7 +35,7 @@ struct attr {
 };
 
 class styledstring {
-  std::set<attr> attrs;
+  std::list<attr> attrs;
   std::string content;
 
 public:
@@ -85,7 +85,7 @@ public:
   void color(range &&r, std::string const &_color) noexcept(false);
   void color(range const &r, std::string const &_color) noexcept(false);
 
-  auto get_attrs() const noexcept -> std::set<attr> const & { return attrs; }
+  auto get_attrs() const noexcept -> std::list<attr> const & { return attrs; }
   auto get_content() const noexcept -> std::string const & { return content; }
 };
 
