@@ -10,6 +10,13 @@ namespace subman {
 struct range {
   size_t start = 0, finish = 0;
 
+  // TODO: Do we really need these?
+  range(size_t &&start, size_t &&finish) noexcept;
+  range(size_t const &start, size_t const &finish) noexcept;
+  range(size_t const &start, size_t &&finish) noexcept;
+  range(size_t &&start, size_t const &finish) noexcept;
+  range &operator=(range r) noexcept;
+
   bool operator<(range const &r) const noexcept;
   bool operator>(range const &r) const noexcept;
   bool operator>=(range const &r) const noexcept;
@@ -19,6 +26,8 @@ struct range {
 
   bool in_between(range const &r) const noexcept;
   bool is_collided(range const &r) const noexcept;
+
+  friend void swap(range &a, range &b) noexcept;
 };
 
 struct attr {
@@ -26,12 +35,28 @@ struct attr {
   std::string name;
   std::string value;
 
+  // TODO: Do we really need these?
+  attr(range &&pos, std::string &&name, std::string &&value) noexcept;
+  attr(range const &pos, std::string &&name, std::string &&value) noexcept;
+  attr(range const &pos, std::string const &name, std::string &&value) noexcept;
+  attr(range const &pos, std::string &&name, std::string const &value) noexcept;
+  attr(range &&pos, std::string const &name, std::string const &value) noexcept;
+  attr(range const &pos, std::string const &name,
+       std::string const &value) noexcept;
+
+  attr(attr const &a) noexcept;
+  attr(attr &&a) noexcept;
+
+  attr &operator=(attr a) noexcept;
+
   bool operator==(attr const &a) const noexcept;
   bool operator!=(attr const &a) const noexcept;
   bool operator<(attr const &a) const noexcept;
   bool operator>(attr const &a) const noexcept;
   bool operator>=(attr const &a) const noexcept;
   bool operator<=(attr const &a) const noexcept;
+
+  friend void swap(attr &a, attr &b) noexcept;
 };
 
 class styledstring {
@@ -48,6 +73,13 @@ public:
   template <class Format>
   auto styled() const noexcept(noexcept(Format::paint_style))
       -> decltype(Format::paint_style);
+
+  void replace_attr(const decltype(attrs)::iterator &old_iter,
+                    attr &&new_attr) noexcept;
+  void replace_attr(const decltype(attrs)::iterator &old_iter,
+                    attr const &new_attr) noexcept;
+  void replace_attr(attr const &old_attr, attr &&new_attr) noexcept;
+  void replace_attr(attr const &old_attr, attr const &new_attr) noexcept;
 
   static styledstring &&add(std::string &&, styledstring &&) noexcept;
   styledstring operator+(styledstring &&sstr) const noexcept;
@@ -85,8 +117,10 @@ public:
   void color(range &&r, std::string const &_color) noexcept(false);
   void color(range const &r, std::string const &_color) noexcept(false);
 
-  auto get_attrs() const noexcept -> std::list<attr> const & { return attrs; }
-  auto get_content() const noexcept -> std::string const & { return content; }
+  auto cget_attrs() const noexcept -> std::list<attr> const & { return attrs; }
+  auto get_attrs() noexcept -> std::list<attr> & { return attrs; }
+  auto cget_content() const noexcept -> std::string const & { return content; }
+  auto get_content() noexcept -> std::string & { return content; }
 };
 
 styledstring operator+(std::string const &str,

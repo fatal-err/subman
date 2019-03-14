@@ -207,3 +207,91 @@ void styledstring::fontsize(range const &r,
                             std::string const &_fontsize) noexcept(false) {
   fontsize(range{r}, std::string{_fontsize});
 }
+
+void styledstring::replace_attr(const decltype(attrs)::iterator &old_iter,
+                                attr &&new_attr) noexcept {
+  if (old_iter->pos == new_attr.pos) {
+    // we don't need to change the order of the attrs' list
+    old_iter->name = std::move(new_attr.name);
+    old_iter->value = std::move(new_attr.value);
+  } else {
+    // we have to change the order of attrs' list since we are changing the
+    // ranges in the attribute so it's just faster to remove existing one and
+    // add the new one
+    attrs.erase(old_iter);
+    put_attribute(std::move(new_attr));
+  }
+}
+void styledstring::replace_attr(const decltype(attrs)::iterator &old_iter,
+                                attr const &new_attr) noexcept {
+  replace_attr(old_iter, attr{new_attr});
+}
+void styledstring::replace_attr(attr const &old_attr,
+                                attr &&new_attr) noexcept {
+  replace_attr(std::find(std::begin(attrs), std::end(attrs), old_attr),
+               std::move(new_attr));
+}
+void styledstring::replace_attr(attr const &old_attr,
+                                attr const &new_attr) noexcept {
+  replace_attr(old_attr, attr{new_attr});
+}
+
+void swap(attr &a, attr &b) noexcept {
+  using std::swap;
+  swap(a.pos, b.pos);
+  swap(a.name, b.name);
+  swap(a.value, b.value);
+}
+
+void swap(range &a, range &b) noexcept {
+  using std::swap;
+  swap(a.start, b.start);
+  swap(a.finish, b.finish);
+}
+
+// range (copy/move) constructors
+
+range::range(size_t &&start, size_t &&finish) noexcept
+    : start(std::move(start)), finish(std::move(finish)) {}
+range::range(size_t const &start, size_t const &finish) noexcept
+    : range(size_t{start}, size_t(finish)) {}
+range::range(size_t const &start, size_t &&finish) noexcept
+    : range{size_t{start}, std::move(finish)} {}
+range::range(size_t &&start, size_t const &finish) noexcept
+    : range{std::move(start), size_t{finish}} {}
+range &range::operator=(range r) noexcept {
+  using std::swap;
+  swap(*this, r);
+  return *this;
+}
+
+// attr (performance stuff)
+
+attr::attr(range &&pos, std::string &&name, std::string &&value) noexcept
+    : pos{std::move(pos)}, name{std::move(name)}, value{std::move(value)} {}
+attr::attr(range const &pos, std::string &&name, std::string &&value) noexcept
+    : attr(range{pos}, std::move(name), std::move(value)) {}
+attr::attr(range const &pos, std::string const &name,
+           std::string &&value) noexcept
+    : attr(range{pos}, std::string{name}, std::move(value)) {}
+attr::attr(range const &pos, std::string &&name,
+           std::string const &value) noexcept
+    : attr{range{pos}, std::move(name), std::string{value}} {}
+attr::attr(range &&pos, std::string const &name,
+           std::string const &value) noexcept
+    : attr{std::move(pos), std::string{name}, std::string{value}} {}
+attr::attr(range const &pos, std::string const &name,
+           std::string const &value) noexcept
+    : attr{range{pos}, std::string{name}, std::string{value}} {}
+
+attr::attr(attr const &a) noexcept : attr{a.pos, a.name, a.value} {}
+attr::attr(attr &&a) noexcept
+    : attr{std::move(a.pos), std::move(a.name), std::move(a.value)} {}
+
+attr &attr::operator=(attr a) noexcept {
+  using std::swap;
+  swap(this->pos, a.pos);
+  swap(this->name, a.name);
+  swap(this->value, a.value);
+  return *this;
+}

@@ -103,8 +103,11 @@ std::string subrip::paint_style(styledstring const &sstr) noexcept {
   using std::begin;
   using std::end;
   using std::move;
-  auto &attrs = sstr.get_attrs();
-  std::string content = sstr.get_content();
+  auto &attrs = const_cast<std::list<attr> &>(sstr.cget_attrs());
+  std::string content = sstr.cget_content();
+  if (attrs.empty()) {
+    return content;
+  }
 
   for (auto const &attribute : attrs) {
     std::string start, end;
@@ -134,11 +137,20 @@ std::string subrip::paint_style(styledstring const &sstr) noexcept {
                    ? content.substr(attribute.pos.finish)
                    : "");
 
-    for (auto &a : attrs) {
+    // optomizing the attrs
+    for (auto it = std::begin(attrs); it != std::end(attrs); ++it) {
+      auto a = *it;
       if (a == attribute)
         continue;
 
       subman::range rr = a.pos;
+
+      if (a.pos.in_between(attribute.pos)) {
+        a.pos.start += start.size();
+        attrs.replace_attr(it, attr{range{a.pos.start + start.size(),
+                                          a.pos.finish + start.size()},
+                                    a.name, a.value});
+      }
 
       // rr is in between the r
       if (rr.start >= attribute.pos.start &&
