@@ -58,16 +58,16 @@ subman::duration subrip::to_duration(std::string const &str) noexcept(false) {
   throw std::invalid_argument("bad string");
 }
 
-subman::subtitle subrip::to_subtitle(std::ifstream &stream) noexcept(false) {
+subman::document subrip::to_subtitle(std::ifstream &stream) noexcept(false) {
   using subman::styledstring;
   if (stream) {
-    subtitle sub;
+    document sub;
     duration dur;
     styledstring content;
     std::string line;
     while (std::getline(stream, line)) {
       if (line.empty()) {
-        sub.put_verse(verse{content, dur});
+        sub.put_verse(subtitle{content, dur});
         dur.reset();
         content.clear();
       } else {
@@ -87,7 +87,7 @@ subman::subtitle subrip::to_subtitle(std::ifstream &stream) noexcept(false) {
   throw std::invalid_argument("Cannot read the content of the file.");
 }
 
-void subrip::write(subman::subtitle const &sub,
+void subrip::write(subman::document const &sub,
                    std::ostream &out) noexcept(false) {
   if (!out) {
     throw std::invalid_argument("Cannot write data into stream");

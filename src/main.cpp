@@ -15,7 +15,7 @@ using std::vector;
 
 auto main(int argc, char **argv) -> int {
   bool is_recursive;
-  vector<subman::subtitle> subtitles;
+  vector<subman::document> subtitles;
 
   po::options_description desc("SubMan (Subtitle Manager)");
   desc.add_options()("help,h", "Show this help page.")(
