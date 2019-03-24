@@ -1,4 +1,4 @@
-#include "subtitle.h"
+#include "document.h"
 #include <algorithm>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>

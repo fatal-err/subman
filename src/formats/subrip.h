@@ -1,7 +1,7 @@
 #ifndef FORMAT_SUBRIP_H
 #define FORMAT_SUBRIP_H
 
-#include "../subtitle.h"
+#include "../document.h"
 #include <string>
 
 namespace subman {

@@ -1,7 +1,7 @@
 #ifndef UTILITIES_H
 #define UTILITIES_H
 
-#include "subtitle.h"
+#include "document.h"
 #include <string>
 
 namespace subman {

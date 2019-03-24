@@ -3,7 +3,7 @@
 
 #include "duration.h"
 #include "styledstring.h"
-#include "verse.h"
+#include "subtitle.h"
 #include <set>
 
 /**
