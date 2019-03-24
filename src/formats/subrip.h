@@ -15,7 +15,7 @@ public:
   static subman::subtitle to_subtitle(std::ifstream &stream) noexcept(false);
   static void write(subman::subtitle const &sub,
                     std::ostream &out) noexcept(false);
-  static std::string paint_style(styledstring const &sstr) noexcept;
+  static std::string paint_style(styledstring sstr) noexcept;
 };
 
 } // namespace formats

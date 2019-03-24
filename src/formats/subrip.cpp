@@ -99,72 +99,40 @@ void subrip::write(subman::subtitle const &sub,
         << paint_style(v.content) << '\n';
 }
 
-std::string subrip::paint_style(styledstring const &sstr) noexcept {
+std::string subrip::paint_style(styledstring sstr) noexcept {
   using std::begin;
   using std::end;
   using std::move;
-  auto &attrs = const_cast<std::list<attr> &>(sstr.cget_attrs());
-  std::string content = sstr.cget_content();
+  auto &attrs = sstr.get_attrs();
+  std::string const &content = sstr.cget_content();
   if (attrs.empty()) {
     return content;
   }
 
-  for (auto const &attribute : attrs) {
-    std::string start, end;
+  std::sort(begin(attrs), end(attrs));
+
+  // the content that will be styled and returned
+  std::string ncontent = content.substr(0, begin(attrs)->pos.start);
+  std::string _start, _end;
+  for (auto it = begin(attrs); it != end(attrs); it++) {
+    auto const &attribute = *it;
     if (attribute.name == "b" || attribute.name == "u" ||
         attribute.name == "i") {
-      start = "<" + attribute.name + ">";
-      end = "</" + attribute.name + ">";
+      _start = "<" + attribute.name + ">";
+      _end = "</" + attribute.name + ">";
     } else if (attribute.name == "color") {
-      start = "<font color=\"" + attribute.value +
-              "\">"; // TODO: make sure the value is correct
-      end = "</font>";
+      _start = "<font color=\"" + attribute.value +
+               "\">"; // TODO: make sure the value is correct
+      _end = "</font>";
     } else if (attribute.name == "fontsize") {
-      start = "<font size=\"" + attribute.value +
-              "\">"; // TODO: make sure the value is correct
-      end = "</font>";
-    } else {
-      continue; // TODO: check if we need to do something before continuing
+      _start = "<font size=\"" + attribute.value +
+               "\">"; // TODO: make sure the value is correct
+      _end = "</font>";
     }
-
-    // TODO: performace here (use append or += opreator):
-    content = (attribute.pos.start > 0 ? content.substr(0, attribute.pos.start)
-                                       : "") +
-              start +
-              (content.substr(attribute.pos.start, attribute.pos.finish)) +
-              end +
-              (attribute.pos.finish < content.size()
-                   ? content.substr(attribute.pos.finish)
-                   : "");
-
-    // optomizing the attrs
-    for (auto it = std::begin(attrs); it != std::end(attrs); ++it) {
-      auto a = *it;
-      if (a == attribute)
-        continue;
-
-      subman::range rr = a.pos;
-
-      if (a.pos.in_between(attribute.pos)) {
-        a.pos.start += start.size();
-        attrs.replace_attr(it, attr{range{a.pos.start + start.size(),
-                                          a.pos.finish + start.size()},
-                                    a.name, a.value});
-      }
-
-      // rr is in between the r
-      if (rr.start >= attribute.pos.start &&
-          rr.finish <= attribute.pos.finish) {
-        rr.start += start.size();
-        rr.finish += start.size();
-      } else if (rr.start >= attribute.pos.finish) { // rr is completely after r
-        auto ns = start.size() + end.size();
-        rr.start += ns;
-        rr.finish += ns;
-      } else if (rr.start >= attribute.pos.start &&
-                 rr.start < attribute.pos.finish &&
-                 rr.finish > attribute.pos.finish) {
-      }
-    }
+    ncontent.append(std::move(_start));
+    ncontent.append(content.substr(attribute.pos.start, attribute.pos.finish));
+    ncontent.append(std::move(_end));
   }
+
+  return ncontent;
 }

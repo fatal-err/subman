@@ -74,9 +74,13 @@ public:
   auto styled() const noexcept(noexcept(Format::paint_style))
       -> decltype(Format::paint_style);
 
-  void replace_attr(const decltype(attrs)::iterator &old_iter,
+  void replace_attr(decltype(attrs)::iterator &old_iter,
                     attr &&new_attr) noexcept;
-  void replace_attr(const decltype(attrs)::iterator &old_iter,
+  void replace_attr(decltype(attrs)::iterator &old_iter,
+                    attr const &new_attr) noexcept;
+  void replace_attr(const decltype(attrs)::const_iterator &old_iter,
+                    attr &&new_attr) noexcept;
+  void replace_attr(const decltype(attrs)::const_iterator &old_iter,
                     attr const &new_attr) noexcept;
   void replace_attr(attr const &old_attr, attr &&new_attr) noexcept;
   void replace_attr(attr const &old_attr, attr const &new_attr) noexcept;

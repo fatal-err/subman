@@ -208,7 +208,7 @@ void styledstring::fontsize(range const &r,
   fontsize(range{r}, std::string{_fontsize});
 }
 
-void styledstring::replace_attr(const decltype(attrs)::iterator &old_iter,
+void styledstring::replace_attr(decltype(attrs)::iterator &old_iter,
                                 attr &&new_attr) noexcept {
   if (old_iter->pos == new_attr.pos) {
     // we don't need to change the order of the attrs' list
@@ -222,7 +222,20 @@ void styledstring::replace_attr(const decltype(attrs)::iterator &old_iter,
     put_attribute(std::move(new_attr));
   }
 }
-void styledstring::replace_attr(const decltype(attrs)::iterator &old_iter,
+void styledstring::replace_attr(decltype(attrs)::iterator &old_iter,
+                                attr const &new_attr) noexcept {
+  replace_attr(old_iter, attr{new_attr});
+}
+void styledstring::replace_attr(const decltype(attrs)::const_iterator &old_iter,
+                                attr &&new_attr) noexcept {
+
+  // we have to change the order of attrs' list since we are changing the
+  // ranges in the attribute so it's just faster to remove existing one and
+  // add the new one
+  attrs.erase(old_iter);
+  put_attribute(std::move(new_attr));
+}
+void styledstring::replace_attr(const decltype(attrs)::const_iterator &old_iter,
                                 attr const &new_attr) noexcept {
   replace_attr(old_iter, attr{new_attr});
 }
