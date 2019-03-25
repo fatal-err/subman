@@ -1,4 +1,5 @@
 #include "document.h"
+#include "utilities.h"
 #include <algorithm>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
@@ -94,7 +95,7 @@ auto main(int argc, char **argv) -> int {
 
     try {
       std::ofstream stream(output, std::ios_base::out);
-      subman::write_subtitle_to(format, stream, sub);
+      subman::write(format, stream, sub);
       stream.close();
     } catch (std::invalid_argument const &err) {
       std::cerr << err.what() << std::endl;

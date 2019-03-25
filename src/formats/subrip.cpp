@@ -58,7 +58,7 @@ subman::duration subrip::to_duration(std::string const &str) noexcept(false) {
   throw std::invalid_argument("bad string");
 }
 
-subman::document subrip::to_subtitle(std::ifstream &stream) noexcept(false) {
+subman::document subrip::read(std::istream &stream) noexcept(false) {
   using subman::styledstring;
   if (stream) {
     document sub;
