@@ -5,6 +5,7 @@ casts/
 **/*.user
 *.swp
 **/*.swp
+.vs
 
 # This file is used to ignore files which are generated
 # ----------------------------------------------------------------------------
