@@ -1,10 +1,10 @@
 #include "subrip.h"
+#include <algorithm>
 #include <boost/lexical_cast.hpp>
 #include <chrono>
 #include <fstream>
 #include <regex>
 #include <tuple>
-#include <algorithm>
 
 using namespace subman::formats;
 using subman::styledstring;
@@ -69,7 +69,7 @@ subman::document subrip::read(std::istream &stream) noexcept(false) {
     std::string line;
     while (std::getline(stream, line)) {
       if (line.empty()) {
-        sub.put_verse(subtitle{content, dur});
+        sub.put_subtitle(subtitle{content, dur});
         dur.reset();
         content.clear();
       } else {
@@ -95,7 +95,7 @@ void subrip::write(subman::document const &sub,
     throw std::invalid_argument("Cannot write data into stream");
   }
   int i = 1;
-  for (auto v : sub.get_verses())
+  for (auto v : sub.get_subtitles())
     out << (i++) << '\n'
         << subrip::to_string(v.timestamps).c_str() << '\n'
         << paint_style(v.content) << '\n';
@@ -111,7 +111,7 @@ std::string subrip::paint_style(styledstring sstr) noexcept {
     return content;
   }
 
-  std::sort(begin(attrs), end(attrs));
+  attrs.sort();
 
   // the content that will be styled and returned
   std::string ncontent = content.substr(0, begin(attrs)->pos.start);

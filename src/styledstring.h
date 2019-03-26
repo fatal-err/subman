@@ -58,10 +58,8 @@ struct attr {
   bool operator<=(attr const &a) const noexcept;
 
   friend void swap(attr &a, attr &b) noexcept;
-}; 
+};
 void swap(subman::attr &a, subman::attr &b) noexcept;
-
-
 
 class styledstring {
   std::list<attr> attrs;
@@ -99,6 +97,13 @@ public:
   styledstring &operator+=(styledstring const &sstr) & noexcept;
   styledstring &&operator+=(styledstring &&sstr) && noexcept;
 
+  bool operator<(styledstring const &sstr) const noexcept;
+  bool operator>(styledstring const &sstr) const noexcept;
+  bool operator<=(styledstring const &sstr) const noexcept;
+  bool operator>=(styledstring const &sstr) const noexcept;
+  bool operator==(styledstring const &sstr) const noexcept;
+  bool operator!=(styledstring const &sstr) const noexcept;
+
   styledstring substr(size_t const &a, size_t const &b) const noexcept;
   void shift_ranges(int64_t const &shift) noexcept;
   void clear() noexcept;
@@ -134,9 +139,12 @@ public:
 } // namespace subman
 
 subman::styledstring operator+(std::string const &str,
-                       subman::styledstring const &sstr) noexcept;
-subman::styledstring operator+(std::string &&str, subman::styledstring const &sstr) noexcept;
-subman::styledstring &&operator+(std::string const &str, subman::styledstring &&sstr) noexcept;
-subman::styledstring &&operator+(std::string &&str, subman::styledstring &&sstr) noexcept;
+                               subman::styledstring const &sstr) noexcept;
+subman::styledstring operator+(std::string &&str,
+                               subman::styledstring const &sstr) noexcept;
+subman::styledstring &&operator+(std::string const &str,
+                                 subman::styledstring &&sstr) noexcept;
+subman::styledstring &&operator+(std::string &&str,
+                                 subman::styledstring &&sstr) noexcept;
 
 #endif // STYLEDSTRING_H

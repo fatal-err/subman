@@ -30,11 +30,12 @@ class document {
 
 public:
   document();
-  void put_verse(subtitle const &v);
-  void put_verse(
+  void put_subtitle(
       subtitle &&v,
       merge_method const &mm = merge_method::TOP_TO_BOTTOM); // move semantic
-  std::set<subtitle> get_verses() const { return verses; }
+  void put_subtitle(const subtitle &v,
+                    merge_method const &mm = merge_method::TOP_TO_BOTTOM);
+  std::set<subtitle> get_subtitles() const { return verses; }
 };
 
 /**

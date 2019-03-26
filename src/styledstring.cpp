@@ -167,12 +167,11 @@ void styledstring::put_attribute(attr const &a) noexcept(false) {
   put_attribute(attr{a});
 }
 
-
 void styledstring::italic(range &&r) noexcept(false) {
-	put_attribute(attr{std::move(r), "i", nullptr);
+  put_attribute(attr{std::move(r), "i", nullptr});
 }
 void styledstring::italic(range const &r) noexcept(false) {
-	put_attribute(attr{ const_cast<range&&>(r), "i", nullptr });
+  put_attribute(attr{const_cast<range &&>(r), "i", nullptr});
 }
 void styledstring::bold(range &&r) noexcept(false) {
   put_attribute(attr{std::move(r), "b", nullptr});
@@ -188,11 +187,11 @@ void styledstring::fontsize(range &&r,
   put_attribute(attr{std::move(r), "fontsize", std::move(_fontsize)});
 }
 void styledstring::color(range const &r, std::string &&_color) noexcept(false) {
-  color(const_cast<range&&>(r), std::move(_color));
+  color(const_cast<range &&>(r), std::move(_color));
 }
 void styledstring::fontsize(range const &r,
                             std::string &&_fontsize) noexcept(false) {
-  fontsize(const_cast<range&&>(r), std::move(_fontsize));
+  fontsize(const_cast<range &&>(r), std::move(_fontsize));
 }
 void styledstring::color(range &&r, std::string const &_color) noexcept(false) {
   color(std::move(r), std::string{_color});
@@ -202,9 +201,11 @@ void styledstring::fontsize(range &&r,
   fontsize(std::move(r), std::string{_fontsize});
 }
 
-void styledstring::bold(range const &r) noexcept(false) { bold(const_cast<range&&>(r)); }
+void styledstring::bold(range const &r) noexcept(false) {
+  bold(const_cast<range &&>(r));
+}
 void styledstring::underline(range const &r) noexcept(false) {
-  underline(const_cast<range&&>(r));
+  underline(const_cast<range &&>(r));
 }
 void styledstring::color(range const &r,
                          std::string const &_color) noexcept(false) {
@@ -290,7 +291,7 @@ range &range::operator=(range r) noexcept {
 attr::attr(range &&pos, std::string &&name, std::string &&value) noexcept
     : pos{std::move(pos)}, name{std::move(name)}, value{std::move(value)} {}
 attr::attr(range const &pos, std::string &&name, std::string &&value) noexcept
-    : attr(const_cast<range&&>(pos), std::move(name), std::move(value)) {}
+    : attr(const_cast<range &&>(pos), std::move(name), std::move(value)) {}
 attr::attr(range const &pos, std::string const &name,
            std::string &&value) noexcept
     : attr(range{pos}, std::string{name}, std::move(value)) {}
@@ -314,4 +315,23 @@ attr &attr::operator=(attr a) noexcept {
   swap(this->name, a.name);
   swap(this->value, a.value);
   return *this;
+}
+
+bool styledstring::operator<(styledstring const &sstr) const noexcept {
+  return content < sstr.content;
+}
+bool styledstring::operator>(styledstring const &sstr) const noexcept {
+  return content > sstr.content;
+}
+bool styledstring::operator<=(styledstring const &sstr) const noexcept {
+  return content <= sstr.content;
+}
+bool styledstring::operator>=(styledstring const &sstr) const noexcept {
+  return content >= sstr.content;
+}
+bool styledstring::operator==(styledstring const &sstr) const noexcept {
+  return content == sstr.content && attrs == sstr.attrs;
+}
+bool styledstring::operator!=(styledstring const &sstr) const noexcept {
+  return content != sstr.content || attrs != sstr.attrs;
 }
