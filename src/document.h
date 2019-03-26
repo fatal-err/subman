@@ -26,7 +26,7 @@ enum class merge_method {
  * @brief The subtitle class
  */
 class document {
-  std::set<subtitle> verses;
+  std::set<subtitle> subtitles;
 
 public:
   document();
@@ -35,7 +35,7 @@ public:
       merge_method const &mm = merge_method::TOP_TO_BOTTOM); // move semantic
   void put_subtitle(const subtitle &v,
                     merge_method const &mm = merge_method::TOP_TO_BOTTOM);
-  std::set<subtitle> get_subtitles() const { return verses; }
+  std::set<subtitle> get_subtitles() const { return subtitles; }
 };
 
 /**
