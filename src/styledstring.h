@@ -27,7 +27,7 @@ struct range {
   bool in_between(range const &r) const noexcept;
   bool is_collided(range const &r) const noexcept;
 
-  friend void swap(range &a, range &b) noexcept;
+  friend void ::swap(range &a, range &b) noexcept;
 };
 
 struct attr {
@@ -56,8 +56,9 @@ struct attr {
   bool operator>=(attr const &a) const noexcept;
   bool operator<=(attr const &a) const noexcept;
 
-  friend void swap(attr &a, attr &b) noexcept;
-};
+  friend void ::swap(attr &a, attr &b) noexcept;
+}; 
+
 
 class styledstring {
   std::list<attr> attrs;
@@ -127,11 +128,15 @@ public:
   auto get_content() noexcept -> std::string & { return content; }
 };
 
-styledstring operator+(std::string const &str,
-                       styledstring const &sstr) noexcept;
-styledstring operator+(std::string &&str, styledstring const &sstr) noexcept;
-styledstring &&operator+(std::string const &str, styledstring &&sstr) noexcept;
-styledstring &&operator+(std::string &&str, styledstring &&sstr) noexcept;
-
 } // namespace subman
+
+subman::styledstring operator+(std::string const &str,
+                       subman::styledstring const &sstr) noexcept;
+subman::styledstring operator+(std::string &&str, subman::styledstring const &sstr) noexcept;
+subman::styledstring &&operator+(std::string const &str, subman::styledstring &&sstr) noexcept;
+subman::styledstring &&operator+(std::string &&str, subman::styledstring &&sstr) noexcept;
+
+void swap(subman::range &a, subman::range &b) noexcept;
+void swap(subman::attr &a, subman::attr &b) noexcept;
+
 #endif // STYLEDSTRING_H

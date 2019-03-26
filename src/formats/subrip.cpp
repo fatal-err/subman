@@ -4,8 +4,10 @@
 #include <fstream>
 #include <regex>
 #include <tuple>
+#include <algorithm>
 
 using namespace subman::formats;
+using subman::styledstring;
 
 std::string subrip::to_string(subman::duration const &timestamps) noexcept {
   auto from = timestamps.from, to = timestamps.to;

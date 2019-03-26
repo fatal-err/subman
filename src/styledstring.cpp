@@ -79,7 +79,7 @@ styledstring operator+(std::string const &str,
 styledstring operator+(std::string &&str, styledstring const &sstr) noexcept {
   return styledstring::add(std::move(str), styledstring{sstr});
 }
-styledstring operator+(std::string const &str, styledstring &&sstr) noexcept {
+styledstring &&operator+(std::string const &str, styledstring &&sstr) noexcept {
   return styledstring::add(std::string(str), std::move(sstr));
 }
 
@@ -167,6 +167,13 @@ void styledstring::put_attribute(attr const &a) noexcept(false) {
   put_attribute(attr{a});
 }
 
+
+void styledstring::italic(range &&r) noexcept(false) {
+	put_attribute(attr{std::move(r), "i", nullptr);
+}
+void styledstring::italic(range const &r) noexcept(false) {
+	put_attribute(attr{ const_cast<range&&>(r), "i", nullptr });
+}
 void styledstring::bold(range &&r) noexcept(false) {
   put_attribute(attr{std::move(r), "b", nullptr});
 }
@@ -181,11 +188,11 @@ void styledstring::fontsize(range &&r,
   put_attribute(attr{std::move(r), "fontsize", std::move(_fontsize)});
 }
 void styledstring::color(range const &r, std::string &&_color) noexcept(false) {
-  color(range{r}, std::move(_color));
+  color(const_cast<range&&>(r), std::move(_color));
 }
 void styledstring::fontsize(range const &r,
                             std::string &&_fontsize) noexcept(false) {
-  fontsize(range{r}, std::move(_fontsize));
+  fontsize(const_cast<range&&>(r), std::move(_fontsize));
 }
 void styledstring::color(range &&r, std::string const &_color) noexcept(false) {
   color(std::move(r), std::string{_color});
@@ -195,9 +202,9 @@ void styledstring::fontsize(range &&r,
   fontsize(std::move(r), std::string{_fontsize});
 }
 
-void styledstring::bold(range const &r) noexcept(false) { bold(range{r}); }
+void styledstring::bold(range const &r) noexcept(false) { bold(const_cast<range&&>(r)); }
 void styledstring::underline(range const &r) noexcept(false) {
-  underline(range{r});
+  underline(const_cast<range&&>(r));
 }
 void styledstring::color(range const &r,
                          std::string const &_color) noexcept(false) {
@@ -267,11 +274,11 @@ void swap(range &a, range &b) noexcept {
 range::range(size_t &&start, size_t &&finish) noexcept
     : start(std::move(start)), finish(std::move(finish)) {}
 range::range(size_t const &start, size_t const &finish) noexcept
-    : range(size_t{start}, size_t(finish)) {}
+    : range(std::move(size_t{start}), std::move(size_t(finish))) {}
 range::range(size_t const &start, size_t &&finish) noexcept
-    : range{size_t{start}, std::move(finish)} {}
+    : range{std::move(size_t{start}), std::move(finish)} {}
 range::range(size_t &&start, size_t const &finish) noexcept
-    : range{std::move(start), size_t{finish}} {}
+    : range{std::move(start), std::move(size_t{finish})} {}
 range &range::operator=(range r) noexcept {
   using std::swap;
   swap(*this, r);
@@ -283,7 +290,7 @@ range &range::operator=(range r) noexcept {
 attr::attr(range &&pos, std::string &&name, std::string &&value) noexcept
     : pos{std::move(pos)}, name{std::move(name)}, value{std::move(value)} {}
 attr::attr(range const &pos, std::string &&name, std::string &&value) noexcept
-    : attr(range{pos}, std::move(name), std::move(value)) {}
+    : attr(const_cast<range&&>(pos), std::move(name), std::move(value)) {}
 attr::attr(range const &pos, std::string const &name,
            std::string &&value) noexcept
     : attr(range{pos}, std::string{name}, std::move(value)) {}

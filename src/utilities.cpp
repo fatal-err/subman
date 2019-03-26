@@ -4,10 +4,10 @@
 #include "formats/subrip.h"
 
 // read from file
-template <typename SubtitleType> subman::document load(std::istream &in) {
+template <typename SubtitleType> subman::document subman::load(std::istream &in) {
   return SubtitleType::read(in);
 }
-subman::document load(std::string const &path) {
+subman::document subman::load(std::string const & path) {
 	if (!boost::filesystem::exists(path)) {
 		throw std::invalid_argument("Error: File '" + path + "' does not exits.");
 	}
@@ -28,10 +28,10 @@ subman::document load(std::string const &path) {
 
 // write to file
 template <typename SubtitleType>
-void write(const subman::document &doc, std::ostream &out) {
+void subman::write(const subman::document &doc, std::ostream &out) {
 	SubtitleType::write(doc, out);
 }
-void write(const subman::document &doc, std::string const &path, std::string format) {
+void subman::write(const subman::document &doc, std::string const &path, std::string format) {
 	if (boost::filesystem::exists(path)) {
 		throw std::invalid_argument("Error: File '" + path + "' already exists.");
 	}

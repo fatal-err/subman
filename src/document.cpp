@@ -92,10 +92,12 @@ void document::put_verse(subtitle &&v, merge_method const &mm) {
 
 void document::put_verse(const subtitle &v) { put_verse(subtitle(v)); }
 
-document merge(document const &sub1, document const &sub2) {
-  document new_sub = sub1;
+document subman::merge(document const & sub1, document const & sub2, merge_method const & mm) {
+	document new_sub = sub1;
   for (auto &v : sub2.get_verses()) {
     new_sub.put_verse(v);
   }
   return new_sub;
 }
+
+
