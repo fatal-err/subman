@@ -4,7 +4,6 @@
 #include "document.h"
 #include <ostream>
 #include <string>
-#include <type_traits>
 
 namespace subman {
 
@@ -14,8 +13,8 @@ subman::document load(std::string const &path);
 
 // write to file
 template <typename SubtitleType>
-void write(std::ostream &out, const subman::document &doc);
-void write(std::string const &path, const subman::document &doc);
+void write(const subman::document &doc, std::ostream &out);
+void write(const subman::document &doc, std::string const &path, std::string format="auto");
 
 }; // namespace subman
 
