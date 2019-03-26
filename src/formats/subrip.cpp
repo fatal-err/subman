@@ -1,5 +1,7 @@
 #include "subrip.h"
+#include "../utilities.h"
 #include <algorithm>
+#include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 #include <chrono>
 #include <fstream>
@@ -34,9 +36,8 @@ std::string subrip::to_string(subman::duration const &timestamps) noexcept {
   return buffer.str();
 }
 
-subman::duration subrip::to_duration(std::string const &str) noexcept(false) {
-  std::regex durstr(
-      R"(\d+):(\d+):(\d+),?(\d+)\s*-+>\s*(\d+):(\d+):(\d+),?(\d+)");
+std::unique_ptr<subman::duration>
+subrip::to_duration(std::string const &str) noexcept {
   std::smatch match;
   if (std::regex_search(str, match, durstr)) {
     if (match.ready()) {
@@ -53,35 +54,35 @@ subman::duration subrip::to_duration(std::string const &str) noexcept(false) {
       to_ns += (boost::lexical_cast<int64_t>(match[7]) * 1000 +
                 boost::lexical_cast<int64_t>(match[8])) *
                1000; // sec
-      return subman::duration{std::chrono::nanoseconds(from_ns),
-                              std::chrono::nanoseconds(to_ns)};
+      return std::make_unique<subman::duration>(
+          std::chrono::nanoseconds(from_ns), std::chrono::nanoseconds(to_ns));
     }
   }
-  throw std::invalid_argument("bad string");
+  return nullptr;
 }
 
+#include <iostream>
 subman::document subrip::read(std::istream &stream) noexcept(false) {
   using subman::styledstring;
   if (stream) {
     document sub;
-    duration dur;
+    std::unique_ptr<duration> dur;
     styledstring content;
     std::string line;
     while (std::getline(stream, line)) {
-      if (line.empty()) {
-        sub.put_subtitle(subtitle{content, dur});
-        dur.reset();
+      if ("" == boost::trim_copy(line)) {
+        sub.put_subtitle(subtitle{content, *dur});
+        std::cout << "put: " << boost::trim_copy(line) << std::endl;
+        dur->reset();
         content.clear();
       } else {
-        try {
-          dur = to_duration(line);
-        } catch (std::invalid_argument const &) {
-          if (!dur.is_zero()) {
-            content += line;
-          }
-          // if it's not a valid duration, then it's a number or a blank
-          // line which we just don't care.
+        dur.reset(nullptr);
+        dur = to_duration(line);
+        if (!dur) {
+          content += line;
         }
+        // if it's not a valid duration, then it's a number or a blank
+        // line which we just don't care.
       }
     }
     return sub;

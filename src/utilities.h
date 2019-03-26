@@ -2,6 +2,9 @@
 #define UTILITIES_H
 
 #include "document.h"
+#include <algorithm>
+#include <cctype>
+#include <locale>
 #include <ostream>
 #include <string>
 
@@ -14,7 +17,8 @@ subman::document load(std::string const &path);
 // write to file
 template <typename SubtitleType>
 void write(const subman::document &doc, std::ostream &out);
-void write(const subman::document &doc, std::string const &path, std::string format="auto");
+void write(const subman::document &doc, std::string const &path,
+           std::string format = "auto");
 
 }; // namespace subman
 
