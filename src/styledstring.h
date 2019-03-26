@@ -27,8 +27,9 @@ struct range {
   bool in_between(range const &r) const noexcept;
   bool is_collided(range const &r) const noexcept;
 
-  friend void ::swap(range &a, range &b) noexcept;
+  friend void swap(range &a, range &b) noexcept;
 };
+void swap(subman::range &a, subman::range &b) noexcept;
 
 struct attr {
   range pos; // pos is not mutable since it will be used in sorting in std::set
@@ -56,8 +57,10 @@ struct attr {
   bool operator>=(attr const &a) const noexcept;
   bool operator<=(attr const &a) const noexcept;
 
-  friend void ::swap(attr &a, attr &b) noexcept;
+  friend void swap(attr &a, attr &b) noexcept;
 }; 
+void swap(subman::attr &a, subman::attr &b) noexcept;
+
 
 
 class styledstring {
@@ -135,8 +138,5 @@ subman::styledstring operator+(std::string const &str,
 subman::styledstring operator+(std::string &&str, subman::styledstring const &sstr) noexcept;
 subman::styledstring &&operator+(std::string const &str, subman::styledstring &&sstr) noexcept;
 subman::styledstring &&operator+(std::string &&str, subman::styledstring &&sstr) noexcept;
-
-void swap(subman::range &a, subman::range &b) noexcept;
-void swap(subman::attr &a, subman::attr &b) noexcept;
 
 #endif // STYLEDSTRING_H

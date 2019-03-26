@@ -256,14 +256,14 @@ void styledstring::replace_attr(attr const &old_attr,
   replace_attr(old_attr, attr{new_attr});
 }
 
-void swap(attr &a, attr &b) noexcept {
+void subman::swap(attr &a, attr &b) noexcept {
   using std::swap;
   swap(a.pos, b.pos);
   swap(a.name, b.name);
   swap(a.value, b.value);
 }
 
-void swap(range &a, range &b) noexcept {
+void subman::swap(range &a, range &b) noexcept {
   using std::swap;
   swap(a.start, b.start);
   swap(a.finish, b.finish);
