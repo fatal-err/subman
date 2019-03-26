@@ -8,16 +8,16 @@ using namespace subman;
 document::document() {}
 
 void document::put_subtitle(subtitle &&v, merge_method const &mm) {
-  auto place = verses.equal_range(v);
+  auto place = subtitles.equal_range(v);
   auto collided_subtitle =
       (place.first->timestamps.has_cllide_with(v.timestamps))
           ? place.first
           : place.second->timestamps.has_cllide_with(v.timestamps)
                 ? place.second
-                : verses.end();
+                : subtitles.end();
 
-  if (collided_subtitle == verses.end()) { // just insert the damn thing
-    verses.insert(std::move(v));
+  if (collided_subtitle == subtitles.end()) { // just insert the damn thing
+    subtitles.insert(std::move(v));
     return;
   }
 
@@ -32,12 +32,12 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
   auto len = collided_verses.size();
   current_subtitle = collided_verses[0];
   if (v.timestamps.from != current_subtitle->timestamps.from)
-    verses.insert(subtitle{
+    subtitles.insert(subtitle{
         current_subtitle->content,
         duration{current_subtitle->timestamps.from, v.timestamps.from}});
   current_subtitle = collided_verses[len];
   if (v.timestamps.to != current_subtitle->timestamps.to)
-    verses.insert(
+    subtitles.insert(
         subtitle{current_subtitle->content,
                  duration{v.timestamps.to, current_subtitle->timestamps.to}});
 
@@ -71,7 +71,7 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
     }
 
     // taking care of the collided parts
-    verses.insert(subtitle{
+    subtitles.insert(subtitle{
         content,
         duration{std::max(v.timestamps.from, current_subtitle->timestamps.from),
                  std::min(v.timestamps.to, current_subtitle->timestamps.to)}});
@@ -80,13 +80,13 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
                         collided_verses[i + 1]->timestamps.from) {
       // if it's not the last one, then we take care of the middle part (the
       // gap, if it exists)
-      verses.insert(subtitle{
+      subtitles.insert(subtitle{
           v.content, duration{collided_subtitle->timestamps.to,
                               collided_verses[i + 1]->timestamps.from}});
     }
 
     // removing the current_verse from the verses set
-    verses.erase(current_subtitle);
+    subtitles.erase(current_subtitle);
   }
 }
 
