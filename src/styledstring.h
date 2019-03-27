@@ -37,8 +37,10 @@ struct attr {
   std::string value;
 
   // TODO: Do we really need these?
-  attr(range &&pos, std::string &&name, std::string &&value) noexcept;
-  attr(range const &pos, std::string &&name, std::string &&value) noexcept;
+  attr() = default;
+  attr(range &&pos, std::string &&name = "", std::string &&value = "") noexcept;
+  attr(range const &pos, std::string &&name = "",
+       std::string &&value = "") noexcept;
   attr(range const &pos, std::string const &name, std::string &&value) noexcept;
   attr(range const &pos, std::string &&name, std::string const &value) noexcept;
   attr(range &&pos, std::string const &name, std::string const &value) noexcept;
@@ -62,19 +64,23 @@ struct attr {
 void swap(subman::attr &a, subman::attr &b) noexcept;
 
 class styledstring {
-  std::list<attr> attrs;
   std::string content;
+  std::list<attr> attrs;
 
 public:
   styledstring() = default;
   styledstring(styledstring const &) = default;
   styledstring(styledstring &&sstr) = default;
+  styledstring(decltype(content) &&content, decltype(attrs) &&attrs);
+  styledstring(decltype(content) const &content, decltype(attrs) attrs);
+  styledstring(decltype(content) &&content, decltype(attrs) const &attrs);
+  styledstring(decltype(content) const &content, decltype(attrs) const &attrs);
   styledstring &operator=(styledstring const &) = default;
   styledstring &operator=(styledstring &&) = default;
 
-  template <class Format>
-  auto styled() const noexcept(noexcept(Format::paint_style))
-      -> decltype(Format::paint_style);
+  //  template <class Format>
+  //  auto styled() const noexcept(noexcept(Format::paint_style))
+  //      -> decltype(Format::paint_style);
 
   void replace_attr(decltype(attrs)::iterator &old_iter,
                     attr &&new_attr) noexcept;
@@ -96,6 +102,10 @@ public:
   styledstring &&operator+=(std::string &&str) && noexcept;
   styledstring &operator+=(styledstring const &sstr) & noexcept;
   styledstring &&operator+=(styledstring &&sstr) && noexcept;
+  void append_line(styledstring &&line);
+  void append_line(styledstring const &line);
+  void append_line(std::string &&line);
+  void append_line(std::string const &line);
 
   bool operator<(styledstring const &sstr) const noexcept;
   bool operator>(styledstring const &sstr) const noexcept;

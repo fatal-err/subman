@@ -1,9 +1,27 @@
 #include "styledstring.h"
 #include <algorithm>
+#include <boost/algorithm/string.hpp>
 
 using subman::attr;
 using subman::range;
 using subman::styledstring;
+
+// constructors:
+styledstring::styledstring(decltype(content) &&_content,
+                           decltype(attrs) &&_attrs)
+    : content{std::move(_content)}, attrs{std::move(_attrs)} {}
+styledstring::styledstring(decltype(content) const &_content,
+                           decltype(attrs) _attrs)
+    : styledstring(const_cast<decltype(content) &&>(_content),
+                   std::move(_attrs)) {}
+styledstring::styledstring(decltype(content) &&_content,
+                           decltype(attrs) const &_attrs)
+    : styledstring(std::move(_content),
+                   const_cast<decltype(attrs) &&>(_attrs)) {}
+styledstring::styledstring(decltype(content) const &_content,
+                           decltype(attrs) const &_attrs)
+    : styledstring(const_cast<decltype(content) &&>(_content),
+                   const_cast<decltype(attrs) &&>(_attrs)) {}
 
 bool range::operator<(range const &r) const noexcept { return start < r.start; }
 bool range::operator>(range const &r) const noexcept { return start > r.start; }
@@ -34,15 +52,15 @@ bool attr::operator>(attr const &a) const noexcept { return pos > a.pos; }
 bool attr::operator>=(attr const &a) const noexcept { return pos >= a.pos; }
 bool attr::operator<=(attr const &a) const noexcept { return pos <= a.pos; }
 
-template <class Format>
-auto styledstring::styled() const noexcept(noexcept(Format::paint_style))
-    -> decltype(Format::paint_style) {
-  return Format::paint_styled(this);
-}
+// template <class Format>
+// auto styledstring::styled() const noexcept(noexcept(Format::paint_style))
+//    -> decltype(Format::paint_style) {
+//  return Format::paint_styled(this);
+//}
 
 styledstring styledstring::operator+(styledstring &&sstr) const noexcept {
   styledstring tmp = *this; // copy this
-  tmp.content += sstr.content;
+  tmp.content.append(sstr.content);
 
   sstr.shift_ranges(static_cast<int64_t>(tmp.content.size()));
   std::move(sstr.attrs.begin(), sstr.attrs.end(),
@@ -55,11 +73,11 @@ styledstring styledstring::operator+(styledstring const &sstr) const noexcept {
 }
 styledstring styledstring::operator+(std::string &&str) const noexcept {
   styledstring tmp{*this};
-  tmp.content += str;
+  tmp.content.append(std::move(str));
   return tmp;
 }
 styledstring styledstring::operator+(std::string const &str) const noexcept {
-  return operator+(std::string{str});
+  return operator+(const_cast<std::string &&>(str));
 }
 
 styledstring &&styledstring::add(std::string &&str,
@@ -104,28 +122,47 @@ void styledstring::shift_ranges(int64_t const &shift) noexcept {
 styledstring &&styledstring::operator+=(styledstring &&sstr) && noexcept {
   using std::begin;
   using std::end;
-  content += sstr.content;
+  content.append(sstr.content);
   sstr.shift_ranges(static_cast<int64_t>(content.size()));
   std::move(begin(sstr.attrs), end(sstr.attrs), std::back_inserter(attrs));
   return std::move(*this);
 }
 styledstring &styledstring::operator+=(std::string const &str) & noexcept {
-  content += str;
+  content.append(str);
   return *this;
 }
 styledstring &&styledstring::operator+=(std::string &&str) && noexcept {
-  content += str;
+  content.append(std::move(str));
   return std::move(*this);
 }
 styledstring &styledstring::operator+=(styledstring const &sstr) & noexcept {
   styledstring tmp{sstr};
-  content += tmp.content;
+  content.append(tmp.content);
   tmp.shift_ranges(static_cast<int64_t>(content.size()));
   std::move(std::begin(tmp.attrs), std::end(tmp.attrs),
             std::back_inserter(attrs));
   return *this;
 }
 
+void styledstring::append_line(styledstring &&line) {
+  auto start_pos = content.size();
+  for (auto &_attr : line.get_attrs()) {
+    _attr.pos.start += start_pos;
+    _attr.pos.finish += start_pos;
+    attrs.emplace_back(std::move(_attr));
+  }
+  append_line(std::move(line.get_content()));
+}
+void styledstring::append_line(styledstring const &line) {
+  append_line(const_cast<styledstring &&>(line));
+}
+void styledstring::append_line(std::string &&line) {
+  boost::trim(line);
+  content.append(content.size() ? '\n' + std::move(line) : std::move(line));
+}
+void styledstring::append_line(std::string const &line) {
+  append_line(const_cast<std::string &&>(line));
+}
 void styledstring::clear() noexcept {
   content.clear();
   attrs.clear();

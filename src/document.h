@@ -4,6 +4,7 @@
 #include "duration.h"
 #include "styledstring.h"
 #include "subtitle.h"
+#include <memory>
 #include <set>
 
 /**

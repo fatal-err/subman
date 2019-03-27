@@ -6,7 +6,7 @@
 using namespace subman;
 
 document::document() {}
-
+#include <iostream>
 void document::put_subtitle(subtitle &&v, merge_method const &mm) {
   auto place = subtitles.equal_range(v);
   auto collided_subtitle =
@@ -17,76 +17,68 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
                 : subtitles.end();
 
   if (collided_subtitle == subtitles.end()) { // just insert the damn thing
-    subtitles.insert(std::move(v));
+    subtitles.emplace(std::move(v));
     return;
   }
 
-  std::vector<decltype(place.first)> collided_verses;
-  for (auto current_verse = place.first;
-       v.timestamps.in_between((current_verse)->timestamps); ++current_verse) {
-    collided_verses.push_back(current_verse);
-  }
-
   // taking care of the remaining first and last part after the for loop:
-  decltype(collided_subtitle) current_subtitle;
-  auto len = collided_verses.size();
-  current_subtitle = collided_verses[0];
-  if (v.timestamps.from != current_subtitle->timestamps.from)
-    subtitles.insert(subtitle{
-        current_subtitle->content,
-        duration{current_subtitle->timestamps.from, v.timestamps.from}});
-  current_subtitle = collided_verses[len];
-  if (v.timestamps.to != current_subtitle->timestamps.to)
-    subtitles.insert(
-        subtitle{current_subtitle->content,
-                 duration{v.timestamps.to, current_subtitle->timestamps.to}});
+  //  auto len = collided_subtitles.size();
+  //  if (v.timestamps.from != (*current_subtitle)->timestamps.from)
+  //    subtitles.insert(subtitle{
+  //        (*current_subtitle)->content,
+  //        duration{(*current_subtitle)->timestamps.from, v.timestamps.from}});
+  //  current_subtitle = end(collided_subtitles) - 1;
+  //  if (v.timestamps.to != current_subtitle->timestamps.to)
+  //    subtitles.insert(
+  //        subtitle{(*current_subtitle)->content,
+  //                 duration{v.timestamps.to,
+  //                 (*current_subtitle)->timestamps.to}});
 
-  for (size_t i = 0; i < len; i++) {
-    current_subtitle = collided_verses[i];
-
-    styledstring content;
-    auto max_content = std::max(v.content, current_subtitle->content);
-    size_t len = max_content.get_content().size();
+  styledstring content;
+  styledstring max_content;
+  size_t max_len;
+  for (auto it = place.first; v.timestamps.in_between(it->timestamps); ++it) {
+    max_content = std::max(v.content, it->content);
+    max_len = max_content.get_content().size();
     switch (mm) {
     case merge_method::TOP_TO_BOTTOM:
-      content = current_subtitle->content + "\n" + v.content;
+      content = it->content + "\n" + v.content;
       break;
     case merge_method::BOTTOM_TO_TOP:
-      content = v.content + "\n" + current_subtitle->content;
+      content = v.content + "\n" + it->content;
       break;
     case merge_method::LEFT_TO_RIGHT:
-      for (size_t i = 0, j = 0; i < len;
+      for (size_t i = 0, j = 0; i < max_len;
            j = i, i = max_content.get_content().find('\n', i)) {
-        content += current_subtitle->content.substr(j, i) + " ---- " +
-                   v.content.substr(j, i);
+        content += it->content.substr(j, i) + " ---- " + v.content.substr(j, i);
       }
       break;
     case merge_method::RIGHT_TO_LEFT:
-      for (size_t i = 0, j = 0; i < len;
+      for (size_t i = 0, j = 0; i < max_len;
            j = i, i = max_content.get_content().find('\n', i)) {
-        content += v.content.substr(j, i) + " ---- " +
-                   current_subtitle->content.substr(j, i);
+        content += v.content.substr(j, i) + " ---- " + it->content.substr(j, i);
       }
       break;
     }
 
     // taking care of the collided parts
     subtitles.insert(subtitle{
-        content,
-        duration{std::max(v.timestamps.from, current_subtitle->timestamps.from),
-                 std::min(v.timestamps.to, current_subtitle->timestamps.to)}});
+        content, duration{std::max(v.timestamps.from, it->timestamps.from),
+                          std::min(v.timestamps.to, it->timestamps.to)}});
 
-    if (i != len && collided_subtitle->timestamps.to !=
-                        collided_verses[i + 1]->timestamps.from) {
+    if (it != end(subtitles) &&
+        collided_subtitle->timestamps.to != (++it--)->timestamps.from) {
       // if it's not the last one, then we take care of the middle part (the
       // gap, if it exists)
-      subtitles.insert(subtitle{
-          v.content, duration{collided_subtitle->timestamps.to,
-                              collided_verses[i + 1]->timestamps.from}});
+      subtitles.insert(
+          subtitle{v.content, duration{collided_subtitle->timestamps.to,
+                                       (++it--)->timestamps.from}});
     }
 
     // removing the current_verse from the verses set
-    subtitles.erase(current_subtitle);
+    subtitles.erase(it);
+    content.clear();
+    max_content.clear();
   }
 }
 

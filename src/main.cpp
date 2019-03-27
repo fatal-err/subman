@@ -52,7 +52,7 @@ auto main(int argc, char **argv) -> int {
       "italic,i", po::value<vector<bool>>()->multitoken(), "Italic font")(
       "bold,b", po::value<vector<bool>>()->multitoken(), "Bold font")(
       "color,c", po::value<vector<bool>>()->multitoken(),
-      "Colors")("output-format,f", po::value<string>()->default_value("auto"),
+      "Colors")("output-format,e", po::value<string>()->default_value("auto"),
                 "Output format");
   po::positional_options_description inputs_desc;
   inputs_desc.add("input-files", -1);
