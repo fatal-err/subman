@@ -18,96 +18,55 @@ const std::regex durstr{
     "([0-9]+):([0-9]+),?([0-9]+)"};
 
 styledstring transpile_html(std::string &&line) {
-  std::list<subman::attr> lattrs;
-  std::string clean_line;
-  char separator;
-  std::list<subman::attr>::iterator ender;
-  std::string name;
-  static enum { TAG_NAME_PHASE, ATTR_NAME_PHASE, ATTR_VALUE_PHASE } tag_status;
-  for (auto ch = begin(line); ch != end(line); ch++) {
-    switch (*ch) {
-    case '<':
-      tag_status = TAG_NAME_PHASE;
-      lattrs.emplace_back(subman::range{clean_line.size(), line.size()});
-      // replacing the correct finish position for the attributes:
-      if ('/' == *(ch + 1)) {
-        ch++;
-        ender = end(lattrs);
-        name = "";
-        // find the name in something like this: </tagname>
-        while (!((*ch > 'a' && *ch < 'z') || (*ch > 'A' && *ch < 'Z')) &&
-               ch != end(line)) {
-          name += {*ch, '\0'};
-          ch++;
-        }
-        boost::to_lower(name);
-        // finding the attribute that we have to close here:
-        while (ender != --begin(lattrs) && (ender--)->name != name &&
-               ender->pos.finish != line.size())
-          ;
-        if (ender != --begin(lattrs))
-          ender->pos.finish = clean_line.size();
-      }
-      for (; ch != end(line) || '>' == *ch; ch++) {
-        switch (tag_status) {
-        case TAG_NAME_PHASE:
-          switch (*ch) {
-          case ' ':
-          case '\n':
-          case '\r':
-          case '\t':
-          case '\f':
-          case '\v':
-            // done with nameing
-            tag_status = ATTR_NAME_PHASE;
-            break;
-          default:
-            (--end(lattrs))->name.append({std::move(*ch), '\0'});
-          }
-          break;
-        case ATTR_NAME_PHASE:
-          switch (*ch) {
-          case '=':
-            tag_status = ATTR_VALUE_PHASE;
-            break;
-          case ' ':
-          case '\n':
-          case '\r':
-          case '\t':
-          case '\f':
-          case '\v':
-            // go to the next attribute if the attribute has no value
-            if ("" != (--end(lattrs))->name) {
-              lattrs.emplace_back();
-            } // else: skip the first/last spaces
-            // skip last spaces
-            break;
-          default:
-            (--end(lattrs))->name.append({std::move(*ch), '\0'});
-            break;
-          }
-          break;
-        case ATTR_VALUE_PHASE:
-          // skip the spaces if any:
-          while ((' ' == *ch || '\r' == *ch || '\n' == *ch || '\t' == *ch ||
-                  '\f' == *ch || '\v' == *ch) &&
-                 ch++ != end(line))
-            ;
-          // fiding the separator and adding the the values to it's true place
-          separator = ('"' == *ch || '\'' == *ch) ? *ch : ' ';
-          while (((separator == ' ') ? ('>' != *ch) : (*ch != separator)) &&
-                 *(ch - 1) != '\\')
-            (--end(lattrs))->value.append({*ch, '\0'});
-          break;
+  static const std::regex tag_regex{"<([^>]+)>"};
+  static const std::regex tag_name_regex{"^/?[A-z_-]+"};
+  static const std::regex attributes_regex{
+      "([A-z_-]+)\\s+(('[^']*')|(\\\"[^\\\"]*\\\")|([^\\s]))"};
+  styledstring sstr;
+
+  std::smatch tag_matches, tag_name_matcher, attrs_matcher;
+  std::string data, tag_name, attr_name, value;
+  size_t position;
+  decltype(std::rbegin(sstr.get_attrs())) it;
+  while (std::regex_search(line, tag_matches, tag_regex)) {
+    data = tag_matches[1];
+    if (!std::regex_search(data, tag_name_matcher, tag_name_regex)) {
+      continue;
+    }
+    position = static_cast<size_t>(tag_matches.position());
+    tag_name = tag_name_matcher[0];
+    boost::to_lower(tag_name);
+    if ('/' == data[0]) { // the end of a tag
+      for (it = std::rbegin(sstr.get_attrs());
+           it != std::rend(sstr.get_attrs()); it++) {
+        if (it->name == tag_name && it->pos.finish == line.size()) {
+          it->pos.finish = position;
         }
       }
-      break;
-    default:
-      clean_line.append({std::move(*ch), '\0'});
-      break;
+    } else { // it's a new tag
+      subman::range pos{position, line.size()};
+      if ("i" == tag_name)
+        sstr.italic(std::move(pos));
+      else if ("b" == tag_name)
+        sstr.bold(std::move(pos));
+      else if ("u" == tag_name)
+        sstr.underline(std::move(pos));
+      else if ("font" == tag_name) {
+        std::string attrs_data = tag_name_matcher.suffix().str();
+        while (std::regex_search(attrs_data, attrs_matcher, attributes_regex)) {
+          attr_name = attrs_matcher[1];
+          value = attrs_matcher[2];
+          if ('\'' == value[0] || '"' == value[0])
+            value = value.substr(1, value.size() - 1);
+          if ("size" == attr_name)
+            sstr.fontsize(pos, value);
+          else if ("color" == attr_name)
+            sstr.color(pos, value);
+        }
+      }
     }
   }
-  return styledstring{std::move(clean_line), std::move(lattrs)};
+  return sstr;
 }
 
 std::string to_string(subman::duration const &timestamps) noexcept {
