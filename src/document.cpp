@@ -8,9 +8,9 @@ using namespace subman;
 void document::put_subtitle(subtitle &&v, merge_method const &mm) {
   auto place = subtitles.equal_range(v);
   auto collided_subtitle =
-      (place.first->timestamps.has_cllide_with(v.timestamps))
+      (place.first != std::end(subtitles) && place.first->timestamps.has_cllide_with(v.timestamps))
           ? place.first
-          : place.second->timestamps.has_cllide_with(v.timestamps)
+          : (place.second != std::end(subtitles) && place.second->timestamps.has_cllide_with(v.timestamps))
                 ? place.second
                 : subtitles.end();
 
@@ -30,7 +30,7 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
   size_t max_len;
   std::vector<subtitle> subtitle_registery;
   auto it = place.first;
-  for (; it != end(subtitles) && v.timestamps.in_between(it->timestamps);
+  for (; it != end(subtitles) && v.timestamps.has_cllide_with(it->timestamps);
        ++it) {
     std::cout << it->timestamps.from.count() << "-" << it->timestamps.to.count()
               << "-------------" << v.timestamps.from.count() << "-"
@@ -63,7 +63,8 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
         content, duration{std::max(v.timestamps.from, it->timestamps.from),
                           std::min(v.timestamps.to, it->timestamps.to)});
 
-    auto next_it = ++it--;
+    auto next_it = ++it;
+	it--;
     if (next_it != end(subtitles) && v.timestamps.to != it->timestamps.from) {
       // if it's not the last one, then we take care of the middle part (the
       // gap, if it exists)
