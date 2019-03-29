@@ -98,18 +98,21 @@ auto main(int argc, char **argv) -> int {
 
   // this function will load and add subtitles to the "documents" variable:
   function<void(string const &)> recursive_handler;
-  recursive_handler = [&](string const &input_path) {
+  recursive_handler = [&](string input_path) {
     // check if the path is a directory and handle file loading:
     // we will go in trouble of checking if the user has passed "recursive"
     // option to the command line
     if (is_recursive && fs::is_directory(input_path)) {
       for (auto &child : fs::directory_iterator(input_path)) {
         if (fs::is_directory(child)) {
-          recursive_handler(child.path().string()); // handle subdirectories
+          recursive_handler(fs::absolute(child.path().string())
+                                .normalize()
+                                .string()); // handle subdirectories
           continue;
         }
       }
     }
+    input_path = fs::absolute(input_path).normalize().string();
     if (!fs::is_regular_file(input_path)) {
       std::cerr << "Path '" << input_path
                 << "' is not a regular file or directory." << std::endl;
@@ -118,6 +121,7 @@ auto main(int argc, char **argv) -> int {
 
     // it's a regular file so we load it:
     try {
+      std::cout << "Reading file: " << input_path << std::endl;
       inputs.emplace_back(subman::load(input_path));
     } catch (std::exception const &e) {
       std::cerr << "Error: " << e.what() << std::endl;
@@ -135,7 +139,7 @@ auto main(int argc, char **argv) -> int {
 
   if (is_merge) {
 
-    if (!output_files.size()) {
+    if (output_files.empty()) {
       std::cerr
           << "Please specify an output file. Use --help for more information."
           << std::endl;
@@ -146,7 +150,7 @@ auto main(int argc, char **argv) -> int {
     auto doc = inputs[0];
     std::cout << doc.get_subtitles().size() << std::endl;
     for (auto it = std::begin(inputs) + 1; it != end(inputs); ++it) {
-      doc = subman::merge(std::move(doc), std::move(*it), mm);
+      doc = subman::merge(doc, *it, mm);
     }
     outputs[output_files[0]] = doc;
   } else {

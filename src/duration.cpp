@@ -22,13 +22,9 @@ bool duration::has_cllide_with(duration const &v) const {
   return (to >= v.from && to <= v.to) || (from >= v.from && from <= v.to);
 }
 
-duration::duration(std::chrono::nanoseconds &&from,
-                   std::chrono::nanoseconds &&to)
-    : from(from), to(to) {}
-
 duration::duration(std::chrono::nanoseconds const &from,
                    std::chrono::nanoseconds const &to)
-    : from(std::move(from)), to(std::move(to)) {}
+    : from(from), to(to) {}
 
 void duration::reset() {
   from = std::chrono::nanoseconds{0};

@@ -30,7 +30,7 @@ class document {
   std::set<subtitle> subtitles;
 
 public:
-  document();
+  document() = default;
   void put_subtitle(
       subtitle &&v,
       merge_method const &mm = merge_method::TOP_TO_BOTTOM); // move semantic

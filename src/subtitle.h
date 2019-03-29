@@ -15,11 +15,7 @@ struct subtitle {
 
   // copy constructor
   subtitle(subtitle const &v) : content(v.content), timestamps(v.timestamps) {}
-
-  subtitle(styledstring &&content, duration &&timestamps);
-  subtitle(styledstring &&content, duration const &timestamps);
-  subtitle(styledstring const &content, duration &&timestamps);
-  subtitle(styledstring const &content, duration const &timestamps);
+  subtitle(styledstring content, duration const &timestamps);
 
   bool operator<(subtitle const &) const;
   bool operator>(subtitle const &) const;

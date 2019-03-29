@@ -5,8 +5,6 @@
 
 using namespace subman;
 
-document::document() {}
-#include <iostream>
 void document::put_subtitle(subtitle &&v, merge_method const &mm) {
   auto place = subtitles.equal_range(v);
   auto collided_subtitle =
@@ -21,23 +19,18 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
     return;
   }
 
-  // taking care of the remaining first and last part after the for loop:
-  //  auto len = collided_subtitles.size();
-  //  if (v.timestamps.from != (*current_subtitle)->timestamps.from)
-  //    subtitles.insert(subtitle{
-  //        (*current_subtitle)->content,
-  //        duration{(*current_subtitle)->timestamps.from, v.timestamps.from}});
-  //  current_subtitle = end(collided_subtitles) - 1;
-  //  if (v.timestamps.to != current_subtitle->timestamps.to)
-  //    subtitles.insert(
-  //        subtitle{(*current_subtitle)->content,
-  //                 duration{v.timestamps.to,
-  //                 (*current_subtitle)->timestamps.to}});
+  // taking care of the first part of the subtitle
+  if (v.timestamps.from != place.first->timestamps.from)
+    subtitles.insert(
+        subtitle{place.first->content,
+                 duration{place.first->timestamps.from, v.timestamps.from}});
 
   styledstring content;
   styledstring max_content;
   size_t max_len;
-  for (auto it = place.first; v.timestamps.in_between(it->timestamps); ++it) {
+  auto it = place.first;
+  for (; it != end(subtitles) && v.timestamps.in_between(it->timestamps);
+       ++it) {
     max_content = std::max(v.content, it->content);
     max_len = max_content.get_content().size();
     switch (mm) {
@@ -75,6 +68,15 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
                                        (++it--)->timestamps.from}});
     }
 
+    // taking care of the last remaining piece of subtitle
+    ++it;
+    if (it != end(subtitles) && !v.timestamps.in_between(it->timestamps) &&
+        v.timestamps.to != it->timestamps.to) {
+      subtitles.insert(
+          subtitle{it->content, duration{v.timestamps.to, it->timestamps.to}});
+    }
+    --it;
+
     // removing the current_verse from the verses set
     subtitles.erase(it);
     content.clear();
@@ -83,7 +85,7 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
 }
 
 void document::put_subtitle(const subtitle &v, merge_method const &mm) {
-  put_subtitle(const_cast<subtitle &&>(v), mm);
+  put_subtitle(subtitle{v}, mm);
 }
 
 document subman::merge(document const &sub1, document const &sub2,

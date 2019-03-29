@@ -17,10 +17,9 @@ subman::document subman::load(std::string const &path) {
     auto ext = boost::filesystem::extension(path);
     if (".srt" == ext) {
       return load<subman::formats::subrip>(in);
-    } else {
-      throw std::invalid_argument("Error: Unknown subtitle format (" + ext +
-                                  ").");
     }
+    throw std::invalid_argument("Error: Unknown subtitle format (" + ext +
+                                ").");
   }
   throw std::invalid_argument("Error: Cannot open '" + path + "'.");
 }
@@ -41,10 +40,9 @@ void subman::write(const subman::document &doc, std::string const &path,
     if (".srt" == format) {
       subman::formats::subrip::write(doc, out);
       return;
-    } else {
-      throw std::invalid_argument("Error: Unknown subtitle format (" + ext +
-                                  ").");
     }
+    throw std::invalid_argument("Error: Unknown subtitle format (" + ext +
+                                ").");
   }
   throw std::invalid_argument("Error: Cannot open file '" + path + "'");
 }

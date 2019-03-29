@@ -13,7 +13,6 @@ struct duration {
   std::chrono::nanoseconds to{0};
 
   // directly setting the values
-  duration(std::chrono::nanoseconds &&from, std::chrono::nanoseconds &&to);
   duration(std::chrono::nanoseconds const &from,
            std::chrono::nanoseconds const &to);
 

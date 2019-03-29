@@ -13,30 +13,33 @@
 using namespace subman::formats;
 using subman::styledstring;
 
-const std::regex durstr{
-    "([0-9]+):([0-9]+):([0-9]+),?([0-9]+)\\s*-+>\\s*([0-9]+):"
-    "([0-9]+):([0-9]+),?([0-9]+)"};
-
 styledstring transpile_html(std::string &&line) {
   static const std::regex tag_regex{"<([^>]+)>"};
   static const std::regex tag_name_regex{"^/?[A-z_-]+"};
   static const std::regex attributes_regex{
-      "([A-z_-]+)\\s+(('[^']*')|(\\\"[^\\\"]*\\\")|([^\\s]))"};
+      R"(([A-z_-]+)\s+(('[^']*')|(\"[^\"]*\")|([^\s])))"};
   styledstring sstr;
 
   std::smatch tag_matches, tag_name_matcher, attrs_matcher;
   std::string data, tag_name, attr_name, value;
-  size_t position;
+  size_t position = 0;
   decltype(std::rbegin(sstr.get_attrs())) it;
-  while (std::regex_search(line, tag_matches, tag_regex)) {
+  std::string::const_iterator line_iter{line.cbegin()}, attr_data_iter;
+  bool has_found_something = false;
+  while (
+      std::regex_search(line_iter, std::cend(line), tag_matches, tag_regex)) {
+    has_found_something = true;
     data = tag_matches[1];
     if (!std::regex_search(data, tag_name_matcher, tag_name_regex)) {
       continue;
     }
-    position = static_cast<size_t>(tag_matches.position());
+    position = sstr.cget_content().size() +
+               static_cast<size_t>(tag_matches.position());
     tag_name = tag_name_matcher[0];
     boost::to_lower(tag_name);
     if ('/' == data[0]) { // the end of a tag
+      tag_name =
+          tag_name.substr(1); // removing the first slash in the beggining
       for (it = std::rbegin(sstr.get_attrs());
            it != std::rend(sstr.get_attrs()); it++) {
         if (it->name == tag_name && it->pos.finish == line.size()) {
@@ -46,14 +49,16 @@ styledstring transpile_html(std::string &&line) {
     } else { // it's a new tag
       subman::range pos{position, line.size()};
       if ("i" == tag_name)
-        sstr.italic(std::move(pos));
+        sstr.italic(pos);
       else if ("b" == tag_name)
-        sstr.bold(std::move(pos));
+        sstr.bold(pos);
       else if ("u" == tag_name)
-        sstr.underline(std::move(pos));
+        sstr.underline(pos);
       else if ("font" == tag_name) {
         std::string attrs_data = tag_name_matcher.suffix().str();
-        while (std::regex_search(attrs_data, attrs_matcher, attributes_regex)) {
+        attr_data_iter = std::begin(attrs_data);
+        while (std::regex_search(attr_data_iter, std::cend(attrs_data),
+                                 attrs_matcher, attributes_regex)) {
           attr_name = attrs_matcher[1];
           value = attrs_matcher[2];
           if ('\'' == value[0] || '"' == value[0])
@@ -62,10 +67,19 @@ styledstring transpile_html(std::string &&line) {
             sstr.fontsize(pos, value);
           else if ("color" == attr_name)
             sstr.color(pos, value);
+          attr_data_iter = attrs_matcher.prefix().first;
         }
       }
     }
+    line_iter = tag_matches.suffix().first;
+    sstr.get_content() += tag_matches.prefix().str();
   }
+
+  // last pieces of the subtitle
+  if (!has_found_something)
+    sstr.get_content() = line;
+  else
+    sstr.get_content() += tag_matches.suffix().str();
   return sstr;
 }
 
@@ -99,23 +113,29 @@ std::string to_string(subman::duration const &timestamps) noexcept {
 }
 
 std::unique_ptr<subman::duration> to_duration(std::string const &str) noexcept {
+  static const std::regex durstr{
+      "([0-9]+):([0-9]+):([0-9]+),?([0-9]+)\\s*-+>\\s*([0-9]+):"
+      "([0-9]+):([0-9]+),?([0-9]+)"};
   std::smatch match;
-  if (std::regex_search(str, match, durstr)) {
-    if (match.ready()) {
-      auto from_ns =
-          boost::lexical_cast<int64_t>(match[1]) * 60 * 60 * 1000;   // hour
-      from_ns += boost::lexical_cast<int64_t>(match[2]) * 60 * 1000; // min
-      from_ns += boost::lexical_cast<int64_t>(match[3]) * 1000 +
-                 boost::lexical_cast<int64_t>(match[4]); // sec and the rest
+  try {
+    if (std::regex_search(str, match, durstr)) {
+      if (match.ready()) {
+        auto from_ns =
+            boost::lexical_cast<int64_t>(match[1]) * 60 * 60 * 1000;   // hour
+        from_ns += boost::lexical_cast<int64_t>(match[2]) * 60 * 1000; // min
+        from_ns += boost::lexical_cast<int64_t>(match[3]) * 1000 +
+                   boost::lexical_cast<int64_t>(match[4]); // sec and the rest
 
-      auto to_ns =
-          boost::lexical_cast<int64_t>(match[5]) * 60 * 60 * 1000; // hour
-      to_ns += boost::lexical_cast<int64_t>(match[6]) * 60 * 1000; // min
-      to_ns += boost::lexical_cast<int64_t>(match[7]) * 1000 +
-               boost::lexical_cast<int64_t>(match[8]); // sec and the rest
-      return std::make_unique<subman::duration>(
-          std::chrono::nanoseconds(from_ns), std::chrono::nanoseconds(to_ns));
+        auto to_ns =
+            boost::lexical_cast<int64_t>(match[5]) * 60 * 60 * 1000; // hour
+        to_ns += boost::lexical_cast<int64_t>(match[6]) * 60 * 1000; // min
+        to_ns += boost::lexical_cast<int64_t>(match[7]) * 1000 +
+                 boost::lexical_cast<int64_t>(match[8]); // sec and the rest
+        return std::make_unique<subman::duration>(
+            std::chrono::nanoseconds(from_ns), std::chrono::nanoseconds(to_ns));
+      }
     }
+  } catch (...) { // we return nullptr if anything happens.
   }
   return nullptr;
 }
@@ -150,27 +170,26 @@ std::string paint_style(styledstring sstr) noexcept {
                "\">"; // TODO: make sure the value is correct
       _end = "</font>";
     }
-    ncontent.append(std::move(_start));
+    ncontent.append(_start);
     ncontent.append(content.substr(attribute.pos.start, attribute.pos.finish));
-    ncontent.append(std::move(_end));
+    ncontent.append(_end);
   }
 
   return ncontent;
 }
 
-#include <iostream>
 subman::document subrip::read(std::istream &stream) noexcept(false) {
   using subman::styledstring;
   if (stream) {
     document sub;
-    std::unique_ptr<duration> dur = nullptr;
-    styledstring content;
+    std::unique_ptr<duration> dur;
+    std::string content;
     std::string line;
     while (std::getline(stream, line)) {
       boost::trim(line);
-      if ("" == line) {
-        if (dur && content.get_content().size() > 0) {
-          sub.put_subtitle(subtitle{std::move(content), std::move(*dur)});
+      if (line.empty()) {
+        if (dur && !content.empty()) {
+          sub.put_subtitle(subtitle{transpile_html(std::move(content)), *dur});
         }
         dur = nullptr;
         content.clear();
@@ -181,13 +200,12 @@ subman::document subrip::read(std::istream &stream) noexcept(false) {
         } else if (dur && !dur->is_zero()) {
 
           // transpile the html tags and add to the content
-          content.append_line(transpile_html(std::move(line)));
+          content.append(content.empty() ? line : '\n' + line);
         }
         // if it's not a valid duration, then it's a number or a blank
         // line which we just don't care.
       }
     }
-    std::cout << sub.get_subtitles().end()->content.cget_content() << std::endl;
     return sub;
   }
   throw std::invalid_argument("Cannot read the content of the file.");
@@ -199,7 +217,7 @@ void subrip::write(subman::document const &sub,
     throw std::invalid_argument("Cannot write data into stream");
   }
   int i = 1;
-  for (auto v : sub.get_subtitles())
+  for (const auto &v : sub.get_subtitles())
     out << (i++) << '\n'
         << to_string(v.timestamps).c_str() << '\n'
         << paint_style(v.content) << "\n\n";
