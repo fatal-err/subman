@@ -31,7 +31,7 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
   std::vector<subtitle> subtitle_registery;
   auto it = place.first;
   for (; it != end(subtitles) && v.timestamps.has_cllide_with(it->timestamps);
-       ++it) {
+       ) {
     std::cout << it->timestamps.from.count() << "-" << it->timestamps.to.count()
               << "-------------" << v.timestamps.from.count() << "-"
               << v.timestamps.to.count() << std::endl;
@@ -80,10 +80,6 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
           next_it->content, duration{v.timestamps.to, next_it->timestamps.to});
     }
 
-    // removing the current_verse from the verses set
-    subtitles.erase(*it);
-    content.clear();
-    max_content.clear();
 
     // clearing the registery
     for (auto &a : subtitle_registery) {
@@ -91,8 +87,16 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
                 << a.content.cget_content() << std::endl;
       subtitles.emplace_hint(it, std::move(a));
     }
+
+    // removing the "it" from the verses set
+	auto current_iter = it;
+	it++; // go to the next subtitle before removing this one
+    subtitles.erase(current_iter);
+    content.clear();
+    max_content.clear();
     subtitle_registery.clear();
   }
+
 }
 
 void document::put_subtitle(const subtitle &v, merge_method const &mm) {
