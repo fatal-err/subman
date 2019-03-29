@@ -148,7 +148,6 @@ auto main(int argc, char **argv) -> int {
 
     // merge the documents into one single document:
     auto doc = inputs[0];
-    std::cout << doc.get_subtitles().size() << std::endl;
     for (auto it = std::begin(inputs) + 1; it != end(inputs); ++it) {
       doc = subman::merge(doc, *it, mm);
     }

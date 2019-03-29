@@ -4,7 +4,7 @@
 #include <tuple>
 
 using namespace subman;
-
+#include <iostream>
 void document::put_subtitle(subtitle &&v, merge_method const &mm) {
   auto place = subtitles.equal_range(v);
   auto collided_subtitle =
@@ -21,16 +21,20 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
 
   // taking care of the first part of the subtitle
   if (v.timestamps.from != place.first->timestamps.from)
-    subtitles.insert(
-        subtitle{place.first->content,
-                 duration{place.first->timestamps.from, v.timestamps.from}});
+    subtitles.emplace_hint(
+        place.first, place.first->content,
+        duration{place.first->timestamps.from, v.timestamps.from});
 
   styledstring content;
   styledstring max_content;
   size_t max_len;
+  std::vector<subtitle> subtitle_registery;
   auto it = place.first;
   for (; it != end(subtitles) && v.timestamps.in_between(it->timestamps);
        ++it) {
+    std::cout << it->timestamps.from.count() << "-" << it->timestamps.to.count()
+              << "-------------" << v.timestamps.from.count() << "-"
+              << v.timestamps.to.count() << std::endl;
     max_content = std::max(v.content, it->content);
     max_len = max_content.get_content().size();
     switch (mm) {
@@ -55,32 +59,38 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
     }
 
     // taking care of the collided parts
-    subtitles.insert(subtitle{
+    subtitle_registery.emplace_back(
         content, duration{std::max(v.timestamps.from, it->timestamps.from),
-                          std::min(v.timestamps.to, it->timestamps.to)}});
+                          std::min(v.timestamps.to, it->timestamps.to)});
 
-    if (it != end(subtitles) &&
-        collided_subtitle->timestamps.to != (++it--)->timestamps.from) {
+    auto next_it = ++it--;
+    if (next_it != end(subtitles) && v.timestamps.to != it->timestamps.from) {
       // if it's not the last one, then we take care of the middle part (the
       // gap, if it exists)
-      subtitles.insert(
-          subtitle{v.content, duration{collided_subtitle->timestamps.to,
-                                       (++it--)->timestamps.from}});
+      subtitle_registery.emplace_back(
+          v.content, duration{it->timestamps.to, next_it->timestamps.from});
     }
 
     // taking care of the last remaining piece of subtitle
-    ++it;
-    if (it != end(subtitles) && !v.timestamps.in_between(it->timestamps) &&
-        v.timestamps.to != it->timestamps.to) {
-      subtitles.insert(
-          subtitle{it->content, duration{v.timestamps.to, it->timestamps.to}});
+    if (next_it != end(subtitles) &&
+        !v.timestamps.in_between(next_it->timestamps) &&
+        v.timestamps.to != next_it->timestamps.to) {
+      subtitle_registery.emplace_back(
+          next_it->content, duration{v.timestamps.to, next_it->timestamps.to});
     }
-    --it;
 
     // removing the current_verse from the verses set
-    subtitles.erase(it);
+    subtitles.erase(*it);
     content.clear();
     max_content.clear();
+
+    // clearing the registery
+    for (auto &a : subtitle_registery) {
+      std::cout << a.timestamps.from.count() << "-" << a.timestamps.to.count()
+                << a.content.cget_content() << std::endl;
+      subtitles.emplace_hint(it, std::move(a));
+    }
+    subtitle_registery.clear();
   }
 }
 
