@@ -7,7 +7,7 @@
 namespace subman {
 
 /**
- * @brief The verse struct
+ * @brief The subtitle struct
  */
 struct subtitle {
   styledstring content;
