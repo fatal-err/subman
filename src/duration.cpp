@@ -18,8 +18,9 @@ bool duration::in_between(duration const &v) const {
   return from >= v.from && to <= v.to;
 }
 
-bool duration::has_cllide_with(duration const &v) const {
-  return (to >= v.from && to <= v.to) || (from >= v.from && from <= v.to);
+bool duration::has_collide_with(duration const &v) const {
+  return (to > v.from && to <= v.to) || (from >= v.from && from < v.to) ||
+         (from >= v.from && to >= v.to);
 }
 
 duration::duration(std::chrono::nanoseconds const &from,

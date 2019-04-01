@@ -66,8 +66,8 @@ public:
   styledstring() = default;
   styledstring(styledstring const &) = default;
   styledstring(styledstring &&sstr) = default;
-  styledstring(decltype(content) &&content, decltype(attrs) &&attrs);
-  styledstring(decltype(content) const &content, decltype(attrs) attrs);
+  styledstring(decltype(content) &&content, decltype(attrs) &&attrs = {});
+  styledstring(decltype(content) const &content, decltype(attrs) attrs = {});
   styledstring(decltype(content) &&content, decltype(attrs) const &attrs);
   styledstring(decltype(content) const &content, decltype(attrs) const &attrs);
   styledstring &operator=(styledstring const &) = default;

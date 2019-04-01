@@ -31,10 +31,9 @@ class document {
 
 public:
   document() = default;
-  void put_subtitle(
-      subtitle &&v,
-      merge_method const &mm = merge_method::TOP_TO_BOTTOM); // move semantic
-  void put_subtitle(const subtitle &v,
+  void put_subtitle(subtitle const &v,
+                    merge_method const &mm = merge_method::TOP_TO_BOTTOM);
+  void put_subtitle(subtitle &&v,
                     merge_method const &mm = merge_method::TOP_TO_BOTTOM);
   std::set<subtitle> get_subtitles() const { return subtitles; }
 };

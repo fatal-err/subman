@@ -28,7 +28,7 @@ struct duration {
            to == std::chrono::nanoseconds(0);
   }
   bool in_between(duration const &v) const;
-  bool has_cllide_with(duration const &v) const;
+  bool has_collide_with(duration const &v) const;
   bool operator<(duration const &) const;
   bool operator>(duration const &) const;
   bool operator>=(duration const &) const;

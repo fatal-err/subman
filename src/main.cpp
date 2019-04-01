@@ -1,4 +1,5 @@
 #include "document.h"
+#include "formats/subrip.h"
 #include "utilities.h"
 #include <algorithm>
 #include <boost/filesystem.hpp>
@@ -120,12 +121,12 @@ auto main(int argc, char **argv) -> int {
     }
 
     // it's a regular file so we load it:
-    try {
-      std::cout << "Reading file: " << input_path << std::endl;
-      inputs.emplace_back(subman::load(input_path));
-    } catch (std::exception const &e) {
-      std::cerr << "Error: " << e.what() << std::endl;
-    }
+    //    try {
+    std::cout << "Reading file: " << input_path << std::endl;
+    inputs.emplace_back(subman::load(input_path));
+    //    } catch (std::exception const &e) {
+    //      std::cerr << "Error: " << e.what() << std::endl;
+    //    }
   };
 
   // read every input files/folders:
@@ -137,39 +138,43 @@ auto main(int argc, char **argv) -> int {
     recursive_handler(input_path);
   }
 
-  if (is_merge) {
+  if (inputs.empty()) {
+    std::cout << "Cannot find any subtitle files. Please specify some!"
+              << std::endl;
+    return EXIT_FAILURE;
+  }
 
-    if (output_files.empty()) {
-      std::cerr
-          << "Please specify an output file. Use --help for more information."
-          << std::endl;
-      return EXIT_FAILURE;
-    }
+  {
 
     // merge the documents into one single document:
     auto doc = inputs[0];
     for (auto it = std::begin(inputs) + 1; it != end(inputs); ++it) {
       doc = subman::merge(doc, *it, mm);
     }
-    outputs[output_files[0]] = doc;
-  } else {
-    std::cerr << "Nothing to do. type --help for usage." << std::endl;
-    return EXIT_FAILURE;
+    outputs[output_files.empty() ? "" : output_files[0]] = doc;
   }
 
   auto format = vm["output-format"].as<string>();
-  for (auto const &output : outputs) {
-    try {
-      auto &path = output.first;
-      auto &doc = output.second;
-      if (!is_forced && boost::filesystem::exists(path)) {
-        std::cerr << "Error: File '" + path + "' already exists.";
-        continue;
+  if (!outputs.empty()) {
+    for (auto const &output : outputs) {
+      try {
+        auto &path = output.first;
+        auto &doc = output.second;
+        if (!path.empty()) {
+          if (!is_forced && boost::filesystem::exists(path)) {
+            std::cerr << "Error: File '" + path + "' already exists.";
+            continue;
+          }
+          subman::write(doc, path, format);
+        } else { // printing to stdout
+          subman::formats::subrip::write(doc, std::cout);
+        }
+      } catch (std::invalid_argument const &err) {
+        std::cerr << err.what() << std::endl;
       }
-      subman::write(doc, path, format);
-    } catch (std::invalid_argument const &err) {
-      std::cerr << err.what() << std::endl;
     }
+  } else {
+    std::cerr << "There's nothing to do." << std::endl;
   }
 
   return EXIT_SUCCESS;

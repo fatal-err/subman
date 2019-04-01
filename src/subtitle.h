@@ -10,7 +10,7 @@ namespace subman {
  * @brief The subtitle struct
  */
 struct subtitle {
-  styledstring content;
+  mutable styledstring content;
   duration timestamps;
 
   // copy constructor
