@@ -86,8 +86,8 @@ styledstring transpile_html(std::string &&line) {
 std::string to_string(subman::duration const &timestamps) noexcept {
   auto from = timestamps.from, to = timestamps.to;
   std::stringstream buffer;
-  int64_t hour, min, sec, ns, tmp;
-  tmp = from.count();
+  uint64_t hour, min, sec, ns, tmp;
+  tmp = from;
   hour = tmp / 60 / 60 / 1000;
   tmp -= hour * 60 * 60 * 1000;
   min = tmp / 60 / 1000;
@@ -99,7 +99,7 @@ std::string to_string(subman::duration const &timestamps) noexcept {
          << std::setw(1) << ',' << std::setw(3) << ns; // from
   buffer << " --> ";
 
-  tmp = to.count();
+  tmp = to;
   hour = tmp / 60 / 60 / 1000;
   tmp -= hour * 60 * 60 * 1000;
   min = tmp / 60 / 1000;
@@ -121,18 +121,17 @@ std::unique_ptr<subman::duration> to_duration(std::string const &str) noexcept {
     if (std::regex_search(str, match, durstr)) {
       if (match.ready()) {
         auto from_ns =
-            boost::lexical_cast<int64_t>(match[1]) * 60 * 60 * 1000;   // hour
-        from_ns += boost::lexical_cast<int64_t>(match[2]) * 60 * 1000; // min
-        from_ns += boost::lexical_cast<int64_t>(match[3]) * 1000 +
-                   boost::lexical_cast<int64_t>(match[4]); // sec and the rest
+            boost::lexical_cast<uint64_t>(match[1]) * 60 * 60 * 1000;   // hour
+        from_ns += boost::lexical_cast<uint64_t>(match[2]) * 60 * 1000; // min
+        from_ns += boost::lexical_cast<uint64_t>(match[3]) * 1000 +
+                   boost::lexical_cast<uint64_t>(match[4]); // sec and the rest
 
         auto to_ns =
-            boost::lexical_cast<int64_t>(match[5]) * 60 * 60 * 1000; // hour
-        to_ns += boost::lexical_cast<int64_t>(match[6]) * 60 * 1000; // min
-        to_ns += boost::lexical_cast<int64_t>(match[7]) * 1000 +
-                 boost::lexical_cast<int64_t>(match[8]); // sec and the rest
-        return std::make_unique<subman::duration>(
-            std::chrono::nanoseconds(from_ns), std::chrono::nanoseconds(to_ns));
+            boost::lexical_cast<uint64_t>(match[5]) * 60 * 60 * 1000; // hour
+        to_ns += boost::lexical_cast<uint64_t>(match[6]) * 60 * 1000; // min
+        to_ns += boost::lexical_cast<uint64_t>(match[7]) * 1000 +
+                 boost::lexical_cast<uint64_t>(match[8]); // sec and the rest
+        return std::make_unique<subman::duration>(from_ns, to_ns);
       }
     }
   } catch (...) { // we return nullptr if anything happens.
@@ -171,7 +170,9 @@ std::string paint_style(styledstring sstr) noexcept {
       _end = "</font>";
     }
     ncontent.append(_start);
-    ncontent.append(content.substr(attribute.pos.start, attribute.pos.finish));
+    ncontent.append(
+        content.substr(std::min(attribute.pos.start, 0ul),
+                       std::min(attribute.pos.finish, content.size())));
     ncontent.append(_end);
   }
 

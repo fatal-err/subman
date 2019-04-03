@@ -7,7 +7,9 @@
 #include <functional>
 #include <iostream>
 #include <map>
+#include <mutex>
 #include <string>
+#include <thread>
 #include <vector>
 
 auto main(int argc, char **argv) -> int {
@@ -20,7 +22,7 @@ auto main(int argc, char **argv) -> int {
   using std::vector;
   using subman::document;
 
-  bool is_recursive, is_merge, is_forced;
+  bool is_recursive, is_merge, is_forced, verbose;
   vector<document> inputs;
   map<string, document> outputs;
 
@@ -54,7 +56,10 @@ auto main(int argc, char **argv) -> int {
       "bold,b", po::value<vector<bool>>()->multitoken(), "Bold font")(
       "color,c", po::value<vector<bool>>()->multitoken(),
       "Colors")("output-format,e", po::value<string>()->default_value("auto"),
-                "Output format");
+                "Output format")("verbose,v", po::bool_switch(&verbose)
+                                                  ->default_value(false)
+                                                  ->implicit_value(true)
+                                                  ->zero_tokens());
   po::positional_options_description inputs_desc;
   inputs_desc.add("input-files", -1);
 
@@ -84,18 +89,19 @@ auto main(int argc, char **argv) -> int {
     return EXIT_FAILURE;
   }
   auto input_files = vm["input-files"].as<vector<string>>();
+  std::vector<std::string> valid_input_files;
   auto output_files = !vm.count("output") ? vector<string>()
                                           : vm["output"].as<vector<string>>();
   string smm = vm["merge-method"].as<string>();
   subman::merge_method mm;
   if ("bottom2top" == smm)
-    mm = subman::merge_method::BOTTOM_TO_TOP;
+    mm.direction = subman::merge_method_direction::BOTTOM_TO_TOP;
   if ("left2right" == smm)
-    mm = subman::merge_method::LEFT_TO_RIGHT;
+    mm.direction = subman::merge_method_direction::LEFT_TO_RIGHT;
   if ("right2left" == smm)
-    mm = subman::merge_method::RIGHT_TO_LEFT;
+    mm.direction = subman::merge_method_direction::RIGHT_TO_LEFT;
   else
-    mm = subman::merge_method::TOP_TO_BOTTOM;
+    mm.direction = subman::merge_method_direction::TOP_TO_BOTTOM;
 
   // this function will load and add subtitles to the "documents" variable:
   function<void(string const &)> recursive_handler;
@@ -120,10 +126,12 @@ auto main(int argc, char **argv) -> int {
       return;
     }
 
-    // it's a regular file so we load it:
+    // it's a regular file so we push it for later to load it:
     //    try {
-    std::cout << "Reading file: " << input_path << std::endl;
-    inputs.emplace_back(subman::load(input_path));
+    //    if (verbose) {
+    //      std::cout << "Reading file: " << input_path << std::endl;
+    //    }
+    valid_input_files.emplace_back(input_path);
     //    } catch (std::exception const &e) {
     //      std::cerr << "Error: " << e.what() << std::endl;
     //    }
@@ -137,6 +145,30 @@ auto main(int argc, char **argv) -> int {
     }
     recursive_handler(input_path);
   }
+
+  // reading the input files in a multithreaded environment:
+  std::vector<std::thread> workers;
+  std::mutex lock;
+  for (string const &input_path : valid_input_files) {
+    workers.emplace_back(
+        [&](auto const &path) {
+          try {
+            auto sub = subman::load(path);
+            std::unique_lock<std::mutex> my_lock(lock);
+            if (verbose) {
+              std::cout << "Reading file: " << path << std::endl;
+            }
+            inputs.emplace_back(std::move(sub));
+          } catch (std::exception const &e) {
+            std::cerr << "Error: " << e.what() << std::endl;
+          }
+        },
+        input_path);
+  }
+  for (auto &worker : workers) {
+    worker.join();
+  }
+  workers.clear();
 
   if (inputs.empty()) {
     std::cout << "Cannot find any subtitle files. Please specify some!"
@@ -164,6 +196,9 @@ auto main(int argc, char **argv) -> int {
           if (!is_forced && boost::filesystem::exists(path)) {
             std::cerr << "Error: File '" + path + "' already exists.";
             continue;
+          }
+          if (verbose) {
+            std::cout << "Writing to file: " << path << std::endl;
           }
           subman::write(doc, path, format);
         } else { // printing to stdout

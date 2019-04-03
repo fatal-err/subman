@@ -19,15 +19,13 @@ bool duration::in_between(duration const &v) const {
 }
 
 bool duration::has_collide_with(duration const &v) const {
-  return (to > v.from && to <= v.to) || (from >= v.from && from < v.to) ||
-         (from >= v.from && to >= v.to);
+  return (from >= v.from && from < v.to) || (v.from >= from && v.from < to);
 }
 
-duration::duration(std::chrono::nanoseconds const &from,
-                   std::chrono::nanoseconds const &to)
-    : from(from), to(to) {}
+duration::duration(decltype(from) const &_from, decltype(to) const &_to)
+    : from(_from), to(_to) {}
 
 void duration::reset() {
-  from = std::chrono::nanoseconds{0};
-  to = std::chrono::nanoseconds{0};
+  from = 0;
+  to = 0;
 }

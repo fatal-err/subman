@@ -9,12 +9,11 @@ namespace subman {
  * @brief The duration struct
  */
 struct duration {
-  std::chrono::nanoseconds from{0};
-  std::chrono::nanoseconds to{0};
+  uint64_t from{0};
+  uint64_t to{0};
 
   // directly setting the values
-  duration(std::chrono::nanoseconds const &from,
-           std::chrono::nanoseconds const &to);
+  duration(decltype(from) const &from, decltype(to) const &to);
 
   // default constructor
   duration() = default;
@@ -23,10 +22,7 @@ struct duration {
   duration(duration const &d) : from(d.from), to(d.to) {}
 
   void reset();
-  inline bool is_zero() const {
-    return from == std::chrono::nanoseconds(0) &&
-           to == std::chrono::nanoseconds(0);
-  }
+  inline bool is_zero() const { return from == 0 && to == 0; }
   bool in_between(duration const &v) const;
   bool has_collide_with(duration const &v) const;
   bool operator<(duration const &) const;
