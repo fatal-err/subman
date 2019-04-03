@@ -5,6 +5,27 @@
 
 using namespace subman;
 
+merge_method_function_t
+merge_method::color(std::string const &_color) noexcept {
+  return [&](styledstring &sstr) {
+    sstr.color(subman::range{0, sstr.cget_content().size()}, _color);
+  };
+}
+merge_method_function_t
+merge_method::fontsize(std::string const &_fontsize) noexcept {
+  return [&](styledstring &sstr) { sstr.fontsize(_fontsize); };
+}
+
+merge_method_function_t merge_method::bold() noexcept {
+  return [](styledstring &sstr) { sstr.bold(); };
+}
+merge_method_function_t underline() noexcept {
+  return [](styledstring &sstr) { sstr.underline(); };
+}
+merge_method_function_t italic() noexcept {
+  return [](styledstring &sstr) { sstr.italic(); };
+}
+
 #include <iostream>
 
 styledstring merge_styledstring(styledstring const &first, styledstring second,
@@ -55,27 +76,35 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
       std::prev(collided_subtitle)->timestamps.has_collide_with(v.timestamps))
     collided_subtitle--;
 
-  //  std::cout << std::boolalpha << v.content.cget_content() << "++++"
-  //            << v.timestamps.from.count() << "-" << v.timestamps.to.count()
-  //            << "........." << (collided_subtitle == std::end(subtitles))
-  //            << "......."
-  //            << (collided_subtitle != begin &&
-  //                std::prev(collided_subtitle)
-  //                    ->timestamps.has_collide_with(v.timestamps))
-  //            << std::endl;
+  std::cout << std::boolalpha << v.content.cget_content() << "++++"
+            << v.timestamps.from << "-" << v.timestamps.to << "  -   "
+            << (collided_subtitle != end ? collided_subtitle->timestamps.from
+                                         : 0)
+            << '-'
+            << (collided_subtitle != end ? collided_subtitle->timestamps.to : 0)
+            << "{"
+            << (collided_subtitle != end
+                    ? collided_subtitle->content.cget_content()
+                    : "")
+            << "}"
+            << "........." << (collided_subtitle == std::end(subtitles))
+            << "......."
+            << (collided_subtitle != begin &&
+                std::prev(collided_subtitle)
+                    ->timestamps.has_collide_with(v.timestamps))
+            << std::endl;
 
   // there is no collision between subtitles
   if (collided_subtitle == end) {
     // just insert the damn thing
-    assert(v.timestamps.from != v.timestamps.to);
     subtitles.emplace_hint(lower_bound, std::move(v));
     return;
   }
 
-  assert(v.timestamps.to != v.timestamps.from);
-  std::cout << collided_subtitle->content.get_content() << std::endl;
-  assert(collided_subtitle->timestamps.to !=
-         collided_subtitle->timestamps.from);
+  assert(v.timestamps.from != v.timestamps.to);
+  assert(collided_subtitle->timestamps.from !=
+         collided_subtitle->timestamps.to);
+
   // duplicated subtitles are ignored
   if (*collided_subtitle == v) {
     return;
@@ -84,43 +113,24 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
   // both subtitles are in the same time but with different content;
   // so we change the content just for that subtitle
   if (collided_subtitle->timestamps == v.timestamps) {
-    std::cout << "merge 1" << std::endl;
-    assert(collided_subtitle->timestamps.from !=
-           collided_subtitle->timestamps.to);
     collided_subtitle->content +=
         merge_styledstring(collided_subtitle->content, v.content, mm);
     return;
   }
 
-  subtitle current_sub = *collided_subtitle;
-  auto next_sub = ++collided_subtitle;
-  --collided_subtitle;
+  auto next_sub = std::next(collided_subtitle);
 
   // when one of the subtitles are between the other one. doen't matter which
   auto ainb = v.timestamps.in_between(collided_subtitle->timestamps);
   auto bina = collided_subtitle->timestamps.in_between(v.timestamps);
   if (ainb || bina) {
-    auto &outter = bina ? v : current_sub;
-    auto &inner = bina ? current_sub : v;
-
-    std::cout << "merge 2  === " << outter.timestamps.from << "-"
-              << outter.timestamps.to << " --- " << inner.timestamps.from << "-"
-              << inner.timestamps.to << "--------- "
-              << outter.content.get_content() << "-----"
-              << inner.content.get_content() << std::endl;
-
-    assert(outter.timestamps.from != inner.timestamps.from);
-    assert(inner.timestamps.from != inner.timestamps.to);
-    assert(outter.timestamps.from != outter.timestamps.to);
-    assert(inner.timestamps.to != outter.timestamps.to);
+    auto &outter = bina ? v : *collided_subtitle;
+    auto &inner = bina ? *collided_subtitle : v;
 
     // we just don't care if the new subtitle is the same as the other one that
     // already exists and it's timestamps is just almost the same.
     if (ainb && inner.content.cget_content() == outter.content.cget_content())
       return;
-
-    // removing collided_subtitle
-    subtitles.erase(collided_subtitle);
 
     // first part
     if (outter.timestamps.from != inner.timestamps.from) {
@@ -131,7 +141,7 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
 
     // the middle part
     subtitles.emplace_hint(
-        next_sub, merge_styledstring(current_sub.content, v.content, mm),
+        next_sub, merge_styledstring(collided_subtitle->content, v.content, mm),
         inner.timestamps);
 
     // the last part
@@ -140,6 +150,9 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
           next_sub, outter.content,
           duration{inner.timestamps.to, outter.timestamps.to});
     }
+
+    // removing collided_subtitle
+    subtitles.erase(collided_subtitle);
 
     return;
   }
@@ -152,15 +165,6 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
     auto &second =
         v.timestamps > collided_subtitle->timestamps ? v : *collided_subtitle;
 
-    assert(first.timestamps.from != first.timestamps.to);
-    assert(second.timestamps.from != second.timestamps.to);
-    assert(first.timestamps.from != second.timestamps.from);
-    assert(second.timestamps.from != first.timestamps.to);
-    assert(first.timestamps.to != second.timestamps.to);
-
-    // removing collided_subtitle
-    subtitles.erase(collided_subtitle);
-
     // first part
     if (first.timestamps.from != second.timestamps.from) {
       subtitles.emplace_hint(
@@ -170,7 +174,7 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
 
     // middle part
     subtitles.emplace_hint(
-        next_sub, merge_styledstring(current_sub.content, v.content, mm),
+        next_sub, merge_styledstring(collided_subtitle->content, v.content, mm),
         duration{second.timestamps.from, first.timestamps.to});
 
     // the last part
@@ -181,6 +185,8 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
           duration{first.timestamps.to, second.timestamps.to});
     }
 
+    // removing collided_subtitle
+    subtitles.erase(collided_subtitle);
     return;
   }
 
@@ -188,8 +194,6 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
   // it means that we have collision with at least 2 other subtitles
   if (v.timestamps < collided_subtitle->timestamps) {
     // inserting the first part
-    std::cout << "first part: " << v.content.get_content() << std::endl;
-    assert(v.timestamps.from != collided_subtitle->timestamps.from);
     subtitles.emplace_hint(
         collided_subtitle, v.content,
         duration{v.timestamps.from, collided_subtitle->timestamps.from});
@@ -204,23 +208,17 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
     auto from = std::max(v.timestamps.from, it->timestamps.from);
     auto to = next == end ? std::min(v.timestamps.to, it->timestamps.to)
                           : std::min(v.timestamps.to, next->timestamps.from);
-    assert(from != to);
     subtitle_registery.emplace_back(
         merge_styledstring(it->content, v.content, mm), duration{from, to});
     it++;
-
-    std::cout << v.content.cget_content() << "\n\n";
   }
 
   for (auto &sub : subtitle_registery) {
-    assert(sub.timestamps.from != sub.timestamps.to);
     put_subtitle(std::move(sub), mm);
   }
 
   if (it != end && v.timestamps.to > it->timestamps.to) {
     // inserting the last remmaning part
-    std::cout << "last part: " << v.content.get_content() << std::endl;
-    assert(it->timestamps.to != v.timestamps.to);
     subtitles.emplace_hint(collided_subtitle, v.content,
                            duration{it->timestamps.to, v.timestamps.to});
   }

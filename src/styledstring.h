@@ -116,12 +116,19 @@ public:
   void put_attribute(attr &&a) noexcept;
 
   void bold(range const &r) noexcept;
+  void bold() noexcept;
   void underline(range const &r) noexcept;
+  void underline() noexcept;
   void italic(range const &r) noexcept;
-  void fontsize(range const &r, std::string &&_fontsize) noexcept;
-  void fontsize(range const &r, std::string const &_fontsize) noexcept;
+  void italic() noexcept;
+  void fontsize(range const &r, std::string &&fontsize) noexcept;
+  void fontsize(std::string &&fontsize) noexcept;
+  void fontsize(range const &r, std::string const &fontsize) noexcept;
+  void fontsize(std::string const &fontsize) noexcept;
   void color(range const &r, std::string &&_color) noexcept;
+  void color(std::string &&color) noexcept;
   void color(range const &r, std::string const &_color) noexcept;
+  void color(std::string const &_color) noexcept;
 
   auto cget_attrs() const noexcept -> std::list<attr> const & { return attrs; }
   auto get_attrs() noexcept -> std::list<attr> & { return attrs; }

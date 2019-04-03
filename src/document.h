@@ -24,12 +24,16 @@ enum class merge_method_direction {
   RIGHT_TO_LEFT
 };
 
+using merge_method_function_t = std::function<void(styledstring &)>;
 struct merge_method {
-  std::vector<std::function<void(styledstring &)>> functions = {
-      [](styledstring &sstr) {
-        sstr.color(subman::range{0, sstr.cget_content().size()}, "#ff0000");
-      }};
+  std::vector<merge_method_function_t> functions = {};
   merge_method_direction direction = merge_method_direction::TOP_TO_BOTTOM;
+
+  static merge_method_function_t fontsize(std::string const &fontsize) noexcept;
+  static merge_method_function_t color(std::string const &color) noexcept;
+  static merge_method_function_t bold() noexcept;
+  static merge_method_function_t underline() noexcept;
+  static merge_method_function_t italic() noexcept;
 };
 
 /**

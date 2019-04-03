@@ -220,6 +220,22 @@ void styledstring::fontsize(range const &r,
   fontsize(r, std::string{_fontsize});
 }
 
+void styledstring::bold() noexcept { bold(range{0, content.size()}); }
+void styledstring::italic() noexcept { italic(range{0, content.size()}); }
+void styledstring::underline() noexcept { underline(range{0, content.size()}); }
+void styledstring::color(std::string &&_color) noexcept {
+  color(range{0, content.size()}, std::move(_color));
+}
+void styledstring::color(std::string const &_color) noexcept {
+  color(range{0, content.size()}, _color);
+}
+void styledstring::fontsize(std::string &&_fontsize) noexcept {
+  fontsize(range{0, content.size()}, std::move(_fontsize));
+}
+void styledstring::fontsize(std::string const &_fontsize) noexcept {
+  fontsize(range{0, content.size()}, _fontsize);
+}
+
 void styledstring::replace_attr(decltype(attrs)::iterator &old_iter,
                                 attr &&new_attr) noexcept(false) {
   if (old_iter->pos == new_attr.pos) {
