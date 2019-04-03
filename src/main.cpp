@@ -102,6 +102,7 @@ auto main(int argc, char **argv) -> int {
     mm.direction = subman::merge_method_direction::RIGHT_TO_LEFT;
   else
     mm.direction = subman::merge_method_direction::TOP_TO_BOTTOM;
+  mm.functions.emplace_back(subman::merge_method::color("#ff0000"));
 
   // this function will load and add subtitles to the "documents" variable:
   function<void(string const &)> recursive_handler;
@@ -127,14 +128,7 @@ auto main(int argc, char **argv) -> int {
     }
 
     // it's a regular file so we push it for later to load it:
-    //    try {
-    //    if (verbose) {
-    //      std::cout << "Reading file: " << input_path << std::endl;
-    //    }
     valid_input_files.emplace_back(input_path);
-    //    } catch (std::exception const &e) {
-    //      std::cerr << "Error: " << e.what() << std::endl;
-    //    }
   };
 
   // read every input files/folders:
