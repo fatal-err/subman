@@ -6,6 +6,10 @@ casts/
 *.swp
 **/*.swp
 .vs
+.anjuta/
+.anjuta_sym_db.db
+*.anjuta
+*.kdev4
 
 # This file is used to ignore files which are generated
 # ----------------------------------------------------------------------------
