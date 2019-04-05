@@ -170,9 +170,8 @@ std::string paint_style(styledstring sstr) noexcept {
       _end = "</font>";
     }
     ncontent.append(_start);
-    ncontent.append(
-        content.substr(std::min(attribute.pos.start, 0ul),
-                       std::min(attribute.pos.finish, content.size())));
+    ncontent.append(content.substr(
+        attribute.pos.start, std::min(attribute.pos.finish, content.size())));
     ncontent.append(_end);
   }
 
