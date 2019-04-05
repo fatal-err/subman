@@ -57,12 +57,10 @@ bool attr::operator<=(attr const &a) const noexcept { return pos <= a.pos; }
 
 styledstring styledstring::operator+(styledstring &&sstr) const noexcept {
   styledstring tmp = *this; // copy this
+  sstr.shift_ranges(tmp.content.size());
   tmp.content.append(sstr.content);
-
-  sstr.shift_ranges(static_cast<int64_t>(tmp.content.size()));
   std::move(sstr.attrs.begin(), sstr.attrs.end(),
             std::back_inserter(tmp.attrs));
-
   return tmp;
 }
 styledstring styledstring::operator+(styledstring const &sstr) const noexcept {
@@ -76,7 +74,7 @@ styledstring styledstring::operator+(std::string const &str) const noexcept {
 
 styledstring &&styledstring::add(std::string &&str,
                                  styledstring &&sstr) noexcept {
-  sstr.shift_ranges(static_cast<int64_t>(str.size()));
+  sstr.shift_ranges(str.size());
   sstr.content = std::move(str) + sstr.content;
   return std::move(sstr);
 }
@@ -106,6 +104,14 @@ styledstring styledstring::substr(size_t const &a, size_t const &b) const
   return tmp;
 }
 
+// I've used this overload so much that I decided to add this so I wouldn't have
+// to keep casting stuff
+void styledstring::shift_ranges(size_t const &shift) noexcept {
+  for (auto &attribute : attrs) {
+    attribute.pos.start += shift;
+    attribute.pos.finish += shift;
+  }
+}
 void styledstring::shift_ranges(int64_t const &shift) noexcept {
   for (auto &attribute : attrs) {
     // we are doing this much static casts so we make sure that if there's a
@@ -121,7 +127,7 @@ styledstring &&styledstring::operator+=(styledstring &&sstr) && noexcept {
   using std::begin;
   using std::end;
   content.append(sstr.content);
-  sstr.shift_ranges(static_cast<int64_t>(content.size()));
+  sstr.shift_ranges(content.size());
   std::move(begin(sstr.attrs), end(sstr.attrs), std::back_inserter(attrs));
   return std::move(*this);
 }
@@ -132,7 +138,7 @@ styledstring &styledstring::operator+=(std::string const &str) & noexcept {
 styledstring &styledstring::operator+=(styledstring const &sstr) & noexcept {
   styledstring tmp{sstr};
   content.append(tmp.content);
-  tmp.shift_ranges(static_cast<int64_t>(content.size()));
+  tmp.shift_ranges(content.size());
   std::move(std::begin(tmp.attrs), std::end(tmp.attrs),
             std::back_inserter(attrs));
   return *this;

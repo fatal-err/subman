@@ -110,6 +110,7 @@ public:
 
   styledstring substr(size_t const &a, size_t const &b) const noexcept;
   void shift_ranges(int64_t const &shift) noexcept;
+  void shift_ranges(size_t const &shift) noexcept;
   void clear() noexcept;
 
   void put_attribute(attr const &a) noexcept;
