@@ -152,9 +152,12 @@ std::string paint_style(styledstring sstr) noexcept {
   attrs.sort();
 
   // the content that will be styled and returned
-  std::string ncontent = content.substr(0, begin(attrs)->pos.start);
+  std::string ncontent = content;
   std::string _start, _end;
-  for (auto it = begin(attrs); it != end(attrs); it++) {
+  size_t shift = 0;
+  auto size = content.size();
+  auto attrs_end = std::end(attrs);
+  for (auto it = begin(attrs); it != attrs_end;) {
     auto const &attribute = *it;
     if (attribute.name == "b" || attribute.name == "u" ||
         attribute.name == "i") {
@@ -169,10 +172,16 @@ std::string paint_style(styledstring sstr) noexcept {
                "\">"; // TODO: make sure the value is correct
       _end = "</font>";
     }
-    ncontent.append(_start);
-    ncontent.append(content.substr(
-        attribute.pos.start, std::min(attribute.pos.finish, content.size())));
-    ncontent.append(_end);
+    auto finish = std::min(attribute.pos.finish, size);
+    ncontent.replace(
+        attribute.pos.start + shift, finish - attribute.pos.start,
+        _start +
+            content.substr(attribute.pos.start, finish - attribute.pos.start) +
+            _end);
+    shift += _start.size();
+    it++;
+    if (it != attrs_end && it->pos.start > finish)
+      shift += _end.size();
   }
 
   return ncontent;

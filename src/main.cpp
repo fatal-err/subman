@@ -2,6 +2,8 @@
 #include "formats/subrip.h"
 #include "utilities.h"
 #include <algorithm>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string_regex.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <functional>
@@ -40,7 +42,7 @@ auto main(int argc, char **argv) -> int {
                               ->implicit_value(true)
                               ->zero_tokens(),
                           "Recursively looking for input files.")(
-      "merge-method,s", po::value<string>()->default_value("top2bottom"),
+      "merge-method", po::value<string>()->default_value("top2bottom"),
       "The style of merge method.\n"
       "  Values:\n"
       "    top2bottom\n"
@@ -52,14 +54,14 @@ auto main(int argc, char **argv) -> int {
                             ->implicit_value(true)
                             ->zero_tokens(),
                         "Merge subtitles into one subtitle")(
-      "italic,i", po::value<vector<bool>>()->multitoken(), "Italic font")(
-      "bold,b", po::value<vector<bool>>()->multitoken(), "Bold font")(
-      "color,c", po::value<vector<bool>>()->multitoken(),
-      "Colors")("output-format,e", po::value<string>()->default_value("auto"),
-                "Output format")("verbose,v", po::bool_switch(&verbose)
-                                                  ->default_value(false)
-                                                  ->implicit_value(true)
-                                                  ->zero_tokens());
+      "styles,s", po::value<vector<string>>()->multitoken(),
+      "space-separated styles for each inputs; separate each input by comma."
+      "\ne.g: normal, italics red, bold #00ff00")(
+      "output-format,e", po::value<string>()->default_value("auto"),
+      "Output format")("verbose,v", po::bool_switch(&verbose)
+                                        ->default_value(false)
+                                        ->implicit_value(true)
+                                        ->zero_tokens());
   po::positional_options_description inputs_desc;
   inputs_desc.add("input-files", -1);
 
@@ -102,7 +104,6 @@ auto main(int argc, char **argv) -> int {
     mm.direction = subman::merge_method_direction::RIGHT_TO_LEFT;
   else
     mm.direction = subman::merge_method_direction::TOP_TO_BOTTOM;
-  mm.functions.emplace_back(subman::merge_method::color("#ff0000"));
 
   // this function will load and add subtitles to the "documents" variable:
   function<void(string const &)> recursive_handler;
@@ -140,24 +141,66 @@ auto main(int argc, char **argv) -> int {
     recursive_handler(input_path);
   }
 
+  // reading the styles
+  vector<string> styles;
+  if (vm.count("styles")) {
+    auto data = boost::algorithm::join(vm["styles"].as<vector<string>>(), " ");
+    boost::algorithm::split(styles, data, [](char c) { return c == ','; });
+  }
+
   // reading the input files in a multithreaded environment:
   std::vector<std::thread> workers;
   std::mutex lock;
+  size_t index = 0;
   for (string const &input_path : valid_input_files) {
     workers.emplace_back(
-        [&](auto const &path) {
+        [&](auto const &path, string style) {
           try {
-            auto sub = subman::load(path);
+            auto doc = subman::load(path);
+
+            // applying the styles to the subtitle
+            if (!style.empty()) {
+              vector<string> tags;
+              boost::algorithm::split_regex(tags, style, boost::regex("\\s+"));
+              boost::algorithm::trim(style);
+              boost::algorithm::to_lower(style);
+              if (style != "normal") {
+                bool bold = style == "bold" || style == "b";
+                bool italic = style == "italic" || style == "i";
+                bool underline = style == "underline" || style == "u";
+                bool fontsize = boost::starts_with(style, boost::regex("\\d"));
+                bool color = !bold && !italic && !underline && !fontsize;
+                if (bold || italic || underline || !fontsize || !color) {
+                  for (auto &sub : doc.get_subtitles()) {
+                    if (bold) {
+                      sub.content.bold();
+                    } else if (italic) {
+                      sub.content.italic();
+                    } else if (underline) {
+                      sub.content.underline();
+                    } else if (fontsize) {
+                      sub.content.fontsize(style);
+                    } else {
+                      sub.content.color(style);
+                    }
+                  }
+                }
+              }
+            }
+
             std::unique_lock<std::mutex> my_lock(lock);
             if (verbose) {
-              std::cout << "Reading file: " << path << std::endl;
+              std::cout << "Document loaded: " << path << std::endl;
+              if (!style.empty()) {
+                std::cout << "Style applyed: " << style << '\n' << std::endl;
+              }
             }
-            inputs.emplace_back(std::move(sub));
+            inputs.emplace_back(std::move(doc));
           } catch (std::exception const &e) {
             std::cerr << "Error: " << e.what() << std::endl;
           }
         },
-        input_path);
+        input_path, styles.size() > index ? styles[index++] : "");
   }
   for (auto &worker : workers) {
     worker.join();
