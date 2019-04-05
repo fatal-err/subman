@@ -108,8 +108,12 @@ styledstring styledstring::substr(size_t const &a, size_t const &b) const
 
 void styledstring::shift_ranges(int64_t const &shift) noexcept {
   for (auto &attribute : attrs) {
-    attribute.pos.start += static_cast<size_t>(shift);
-    attribute.pos.finish += static_cast<size_t>(shift);
+    // we are doing this much static casts so we make sure that if there's a
+    // negative input, it actually does what it's supposed to.
+    attribute.pos.start =
+        static_cast<size_t>(static_cast<int64_t>(attribute.pos.start) + shift);
+    attribute.pos.finish =
+        static_cast<size_t>(static_cast<int64_t>(attribute.pos.finish) + shift);
   }
 }
 
