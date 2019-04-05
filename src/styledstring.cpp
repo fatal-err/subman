@@ -126,8 +126,8 @@ void styledstring::shift_ranges(int64_t const &shift) noexcept {
 styledstring &&styledstring::operator+=(styledstring &&sstr) && noexcept {
   using std::begin;
   using std::end;
-  content.append(sstr.content);
   sstr.shift_ranges(content.size());
+  content.append(sstr.content);
   std::move(begin(sstr.attrs), end(sstr.attrs), std::back_inserter(attrs));
   return std::move(*this);
 }
@@ -137,8 +137,8 @@ styledstring &styledstring::operator+=(std::string const &str) & noexcept {
 }
 styledstring &styledstring::operator+=(styledstring const &sstr) & noexcept {
   styledstring tmp{sstr};
-  content.append(tmp.content);
   tmp.shift_ranges(content.size());
+  content.append(tmp.content);
   std::move(std::begin(tmp.attrs), std::end(tmp.attrs),
             std::back_inserter(attrs));
   return *this;
