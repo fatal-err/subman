@@ -38,15 +38,14 @@ struct merge_method {
 
 /**
  * @brief The subtitle class
+ * use put_subtitle insead of directly modifing the subtitles
  */
-class document {
+struct document {
   std::set<subtitle> subtitles;
 
-public:
   document() = default;
   void put_subtitle(subtitle const &v, merge_method const &mm = {});
   void put_subtitle(subtitle &&v, merge_method const &mm = {});
-  decltype(subtitles) inline get_subtitles() const { return subtitles; }
 };
 
 /**

@@ -226,7 +226,7 @@ void subrip::write(subman::document const &sub,
     throw std::invalid_argument("Cannot write data into stream");
   }
   int i = 1;
-  for (const auto &v : sub.get_subtitles())
+  for (const auto &v : sub.subtitles)
     out << (i++) << '\n'
         << to_string(v.timestamps).c_str() << '\n'
         << paint_style(v.content) << "\n\n";

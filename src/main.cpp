@@ -170,8 +170,8 @@ auto main(int argc, char **argv) -> int {
                 bool underline = style == "underline" || style == "u";
                 bool fontsize = boost::starts_with(style, boost::regex("\\d"));
                 bool color = !bold && !italic && !underline && !fontsize;
-                if (bold || italic || underline || !fontsize || !color) {
-                  for (auto &sub : doc.get_subtitles()) {
+                if (bold || italic || underline || fontsize || color) {
+                  for (auto &sub : doc.subtitles) {
                     if (bold) {
                       sub.content.bold();
                     } else if (italic) {

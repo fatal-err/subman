@@ -208,7 +208,7 @@ void document::put_subtitle(const subtitle &v, merge_method const &mm) {
 document subman::merge(document const &sub1, document const &sub2,
                        merge_method const &mm) {
   document new_sub = sub1;
-  for (auto &v : sub2.get_subtitles()) {
+  for (auto &v : sub2.subtitles) {
     new_sub.put_subtitle(v, mm);
   }
   return new_sub;
