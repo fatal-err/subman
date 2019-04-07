@@ -28,6 +28,11 @@ merge_method_function_t italic() noexcept {
 
 styledstring merge_styledstring(styledstring const &first, styledstring second,
                                 merge_method const &mm) {
+  // if (first.cget_content().find(second.cget_content()) != std::string::npos) {
+  //   return second;
+  // } else if (second.cget_content().find(first.cget_content()) != std::string::npos) {
+  //   return first;
+  // }
   auto const &max_content = std::max(first, second);
   auto max_len = max_content.cget_content().size();
   styledstring merged;
@@ -141,6 +146,8 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
     auto second =
         v.timestamps > collided_subtitle->timestamps ? v : *collided_subtitle;
 
+    auto merged = merge_styledstring(collided_subtitle->content, v.content, mm);
+
     // removing collided_subtitle
     subtitles.erase(collided_subtitle);
 
@@ -153,7 +160,7 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
 
     // middle part
     subtitles.emplace_hint(
-        next_sub, merge_styledstring(collided_subtitle->content, v.content, mm),
+        next_sub, merged,
         duration{second.timestamps.from, first.timestamps.to});
 
     // the last part
