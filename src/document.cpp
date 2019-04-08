@@ -74,6 +74,12 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
   if (lower_bound != end &&
       lower_bound->timestamps.has_collide_with(v.timestamps))
     collided_subtitle = lower_bound;
+  
+  if (lower_bound != begin) {
+    auto before_lower_bound = std::prev(lower_bound);
+    if (before_lower_bound->timestamps.has_collide_with(v.timestamps))
+      collided_subtitle = before_lower_bound;
+  }
 
   if (collided_subtitle != begin &&
       std::prev(collided_subtitle)->timestamps.has_collide_with(v.timestamps))
@@ -153,14 +159,17 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
 
     // first part
     if (first.timestamps.from != second.timestamps.from) {
-      subtitles.emplace_hint(
+      // put_subtitle({
+      //   first.content,
+      //   duration{first.timestamps.from, second.timestamps.from}}, mm);
+     subtitles.emplace_hint(
           next_sub, first.content,
           duration{first.timestamps.from, second.timestamps.from});
     }
 
     // middle part
     subtitles.emplace_hint(
-        next_sub, merged,
+        next_sub, std::move(merged),
         duration{second.timestamps.from, first.timestamps.to});
 
     // the last part
@@ -184,7 +193,7 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
   }
   auto it = collided_subtitle;
   std::vector<subtitle> subtitle_registery;
-  while (it != end && v.timestamps.has_collide_with(it->timestamps)) {
+  for (;it != end && v.timestamps.has_collide_with(it->timestamps); ++it) {
     // this put_subtitle will remove the collided subtitle anyway
     // so we don't need to do that, but we have to be careful about the
     // iterator in the for loop. so we did this:
@@ -192,9 +201,9 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
     auto from = std::max(v.timestamps.from, it->timestamps.from);
     auto to = next == end ? std::min(v.timestamps.to, it->timestamps.to)
                           : std::min(v.timestamps.to, next->timestamps.from);
-    subtitle_registery.emplace_back(
-        merge_styledstring(it->content, v.content, mm), duration{from, to});
-    it++;
+
+    // we are not going to merge the settings here. that was a miskate I made
+    subtitle_registery.emplace_back(v.content, duration{from, to});
   }
 
   for (auto &sub : subtitle_registery) {
