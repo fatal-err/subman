@@ -29,3 +29,15 @@ void duration::reset() {
   from = 0;
   to = 0;
 }
+
+void duration::shift(int64_t n) {
+  auto nn = static_cast<size_t>(n);
+  from += from - nn > from ? 0 : nn;
+  to += to - nn > to ? 0 : nn;
+}
+
+void swap(duration &a, duration &b) noexcept {
+  using std::swap;
+  swap(a.from, b.from);
+  swap(a.to, b.to);
+}

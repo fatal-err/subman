@@ -14,6 +14,53 @@
 #include <thread>
 #include <vector>
 
+struct timingoptions {
+  size_t gap = 0;
+  int64_t shift = 0;
+};
+
+struct input {
+  subman::document doc;
+  timingoptions timing;
+};
+
+void transpile_timingoptions(std::vector<input> &inputs, std::string options) {
+  std::vector<std::string> option_list;
+  std::vector<std::string> sub_option_list;
+  std::vector<std::string> option_data;
+  boost::algorithm::split(option_list, options,
+                          [](char c) { return c == ','; });
+  size_t index = 0;
+  for (auto &sub_option : option_list) { // subtitle
+    sub_option_list.clear();
+    boost::algorithm::trim(sub_option);
+    boost::algorithm::split_regex(sub_option_list, sub_option,
+                                  boost::regex("/\\s/"));
+    for (auto &option : sub_option_list) { // timting options for one subtitle
+      boost::algorithm::split(option_data, option, ':');
+      if (option_data.size() != 2) {
+        continue;
+      }
+      if ("shift" == option_data[0]) {
+        try {
+          inputs[index].timing.shift =
+              boost::lexical_cast<int64_t>(option_data[1]);
+        } catch (const boost::bad_lexical_cast &) {
+          inputs[index].timing.shift = 0;
+        }
+      } else if ("gap" == option_data[0]) {
+        try {
+          inputs[index].timing.gap =
+              boost::lexical_cast<size_t>(option_data[1]);
+        } catch (const boost::bad_lexical_cast &) {
+          inputs[index].timing.gap = 0;
+        }
+      }
+    }
+    index++;
+  }
+}
+
 auto main(int argc, char **argv) -> int {
   namespace po = boost::program_options;
   namespace fs = boost::filesystem;
@@ -25,7 +72,7 @@ auto main(int argc, char **argv) -> int {
   using subman::document;
 
   bool is_recursive, is_merge, is_forced, verbose;
-  vector<document> inputs;
+  vector<input> inputs;
   map<string, document> outputs;
 
   po::options_description desc("SubMan (Subtitle Manager)");
@@ -61,7 +108,10 @@ auto main(int argc, char **argv) -> int {
       "Output format")("verbose,v", po::bool_switch(&verbose)
                                         ->default_value(false)
                                         ->implicit_value(true)
-                                        ->zero_tokens());
+                                        ->zero_tokens())(
+      "timing,t", po::value<vector<string>>()->multitoken(),
+      "space-separed timing commands for each inputs; separate "
+      "each input by comma.\ne.g: gap:100ms");
   po::positional_options_description inputs_desc;
   inputs_desc.add("command", 1);
   inputs_desc.add("input-files", -1);
@@ -222,12 +272,33 @@ auto main(int argc, char **argv) -> int {
     return EXIT_FAILURE;
   }
 
+  if (vm.count("timing")) {
+    transpile_timingoptions(inputs, vm["timing"].as<string>());
+
+    // shifting stuff
+    // we could just shift stuff when we were loading things; but in that
+    // situation we had to do it in every single format. so we do it here, it's
+    // not as performant as it should, but we'll be writing this once.
+    for (auto &input : inputs) {
+      if (input.timing.shift != 0) {
+        decltype(input.doc.subtitles) ndoc;
+        std::transform(
+            std::begin(input.doc.subtitles), std::end(input.doc.subtitles),
+            std::begin(input.doc.subtitles), [&](subman::subtitle &sub) {
+              sub.timestamps.shift(input.timing.shift);
+              return sub;
+            });
+      }
+    }
+  }
   if ("merge" == command) {
 
     // merge the documents into one single document:
-    auto doc = inputs[0];
+    auto doc = inputs[0].doc;
+    auto mmm = mm;
     for (auto it = std::begin(inputs) + 1; it != end(inputs); ++it) {
-      doc = subman::merge(doc, *it, mm);
+      mm.gap = it->timing.gap;
+      doc = subman::merge(doc, it->doc, mmm);
     }
     outputs[output_files.empty() ? "" : output_files[0]] = doc;
   }

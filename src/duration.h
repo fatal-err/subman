@@ -22,6 +22,7 @@ struct duration {
   duration(duration const &d) : from(d.from), to(d.to) {}
 
   void reset();
+  void shift(int64_t n);
   inline bool is_zero() const { return from == 0 && to == 0; }
   bool in_between(duration const &v) const;
   bool has_collide_with(duration const &v) const;
@@ -31,7 +32,12 @@ struct duration {
   bool operator<=(duration const &) const;
   bool operator==(duration const &) const;
   bool operator!=(duration const &) const;
+
+  friend void swap(duration &a, duration &b) noexcept;
 };
+
+void swap(duration &a, duration &b) noexcept;
+
 } // namespace subman
 
 #endif // DURATION_H
