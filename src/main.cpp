@@ -63,6 +63,7 @@ auto main(int argc, char **argv) -> int {
                                         ->implicit_value(true)
                                         ->zero_tokens());
   po::positional_options_description inputs_desc;
+  inputs_desc.add("command", 1);
   inputs_desc.add("input-files", -1);
 
   po::variables_map vm;
@@ -84,6 +85,14 @@ auto main(int argc, char **argv) -> int {
     std::cout << desc << std::endl;
     return EXIT_SUCCESS;
   }
+
+  if (!vm.count("commnad")) {
+    std::cerr << "Please specify a command. Use --help for more info."
+              << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  auto command = vm["command"].as<std::string>();
 
   if (!vm.count("input-files")) {
     std::cerr << "Please specify input files. Use --help for more information."
@@ -213,7 +222,7 @@ auto main(int argc, char **argv) -> int {
     return EXIT_FAILURE;
   }
 
-  {
+  if ("merge" == command) {
 
     // merge the documents into one single document:
     auto doc = inputs[0];
