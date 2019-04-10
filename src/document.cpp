@@ -28,9 +28,11 @@ merge_method_function_t italic() noexcept {
 
 styledstring merge_styledstring(styledstring const &first, styledstring second,
                                 merge_method const &mm) {
-  // if (first.cget_content().find(second.cget_content()) != std::string::npos) {
+  // if (first.cget_content().find(second.cget_content()) != std::string::npos)
+  // {
   //   return second;
-  // } else if (second.cget_content().find(first.cget_content()) != std::string::npos) {
+  // } else if (second.cget_content().find(first.cget_content()) !=
+  // std::string::npos) {
   //   return first;
   // }
   auto const &max_content = std::max(first, second);
@@ -74,7 +76,7 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
   if (lower_bound != end &&
       lower_bound->timestamps.has_collide_with(v.timestamps))
     collided_subtitle = lower_bound;
-  
+
   if (lower_bound != begin) {
     auto before_lower_bound = std::prev(lower_bound);
     if (before_lower_bound->timestamps.has_collide_with(v.timestamps))
@@ -162,7 +164,7 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
       // put_subtitle({
       //   first.content,
       //   duration{first.timestamps.from, second.timestamps.from}}, mm);
-     subtitles.emplace_hint(
+      subtitles.emplace_hint(
           next_sub, first.content,
           duration{first.timestamps.from, second.timestamps.from});
     }
@@ -193,7 +195,7 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
   }
   auto it = collided_subtitle;
   std::vector<subtitle> subtitle_registery;
-  for (;it != end && v.timestamps.has_collide_with(it->timestamps); ++it) {
+  for (; it != end && v.timestamps.has_collide_with(it->timestamps); ++it) {
     // this put_subtitle will remove the collided subtitle anyway
     // so we don't need to do that, but we have to be careful about the
     // iterator in the for loop. so we did this:
@@ -221,6 +223,18 @@ void document::put_subtitle(const subtitle &v, merge_method const &mm) {
   put_subtitle(subtitle{v}, mm);
 }
 
+void document::replace_subtitle(decltype(subtitles)::iterator it,
+                                subtitle const &replacement) {
+  replace_subtitle(it, subtitle{replacement});
+}
+void document::replace_subtitle(decltype(subtitles)::iterator it,
+                                subtitle &&replacement) {
+  if (it != std::end(subtitles)) {
+    auto next = std::next(it);
+    subtitles.erase(it);
+    subtitles.emplace_hint(next, std::move(replacement));
+  }
+}
 document subman::merge(document const &sub1, document const &sub2,
                        merge_method const &mm) {
   document new_sub = sub1;
@@ -228,4 +242,38 @@ document subman::merge(document const &sub1, document const &sub2,
     new_sub.put_subtitle(v, mm);
   }
   return new_sub;
+}
+
+// shifting stuff
+// we could just shift stuff when we were loading things; but in that
+// situation we had to do it in every single format. so we do it here, it's
+// not as performant as it should, but we'll be writing this once.
+void document::shift(int64_t s) {
+  std::for_each(std::begin(subtitles), std::end(subtitles),
+                [&](subman::subtitle sub) {
+                  sub.timestamps.shift(s);
+                  return sub;
+                });
+}
+
+void document::gap(size_t g) {
+  size_t m;
+  auto finishline = std::prev(std::end(subtitles));
+  decltype(finishline) next;
+  size_t each;
+  for (auto it = std::begin(subtitles); it != finishline; it++) {
+    next = std::next(it);
+    if (next != finishline) {
+      m = it->timestamps.to - next->timestamps.from;
+      if (m < g) {
+        each = (g - m) / 2;
+        auto current_item = *it;
+        auto next_item = *next;
+        current_item.timestamps.to -= each;
+        next_item.timestamps.from += each;
+        replace_subtitle(it, std::move(current_item));
+        replace_subtitle(next, std::move(next_item));
+      }
+    }
+  }
 }

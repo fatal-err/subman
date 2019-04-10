@@ -1,4 +1,5 @@
 #include "subtitle.h"
+#include <algorithm>
 
 using namespace subman;
 

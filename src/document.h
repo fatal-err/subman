@@ -47,6 +47,14 @@ struct document {
   document() = default;
   void put_subtitle(subtitle const &v, merge_method const &mm = {});
   void put_subtitle(subtitle &&v, merge_method const &mm = {});
+
+  void replace_subtitle(decltype(subtitles)::iterator it,
+                        subtitle const &replacement);
+  void replace_subtitle(decltype(subtitles)::iterator it,
+                        subtitle &&replacement);
+
+  void gap(size_t g);
+  void shift(int64_t s);
 };
 
 /**
