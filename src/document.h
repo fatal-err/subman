@@ -28,6 +28,7 @@ using merge_method_function_t = std::function<void(styledstring &)>;
 struct merge_method {
   std::vector<merge_method_function_t> functions = {};
   merge_method_direction direction = merge_method_direction::TOP_TO_BOTTOM;
+  size_t gap = 100; // the gap between timestamps
 
   static merge_method_function_t fontsize(std::string const &fontsize) noexcept;
   static merge_method_function_t color(std::string const &color) noexcept;
@@ -46,6 +47,14 @@ struct document {
   document() = default;
   void put_subtitle(subtitle const &v, merge_method const &mm = {});
   void put_subtitle(subtitle &&v, merge_method const &mm = {});
+
+  void replace_subtitle(decltype(subtitles)::iterator it,
+                        subtitle const &replacement);
+  void replace_subtitle(decltype(subtitles)::iterator it,
+                        subtitle &&replacement);
+
+  void gap(size_t g);
+  void shift(int64_t s);
 };
 
 /**

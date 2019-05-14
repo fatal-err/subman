@@ -14,6 +14,56 @@
 #include "formats/subrip.h"
 #include "utilities.h"
 
+struct timing_options {
+  size_t gap = 0;
+  int64_t shift = 0;
+};
+
+/**
+ * @brief transpile "--timing" values into timing_options struct
+ * @param options
+ * @return a vector of timing_options
+ */
+std::vector<timing_options> transpile_timing_options(std::string options) {
+  std::vector<std::string> option_list;
+  std::vector<std::string> sub_option_list;
+  std::vector<std::string> option_data;
+  boost::algorithm::split(option_list, options,
+                          [](char c) { return c == ','; });
+  size_t index = 0;
+  std::vector<timing_options> timings;
+  for (auto &sub_option : option_list) {  // subtitle
+    sub_option_list.clear();
+    boost::algorithm::trim(sub_option);
+    boost::algorithm::split_regex(sub_option_list, sub_option,
+                                  boost::regex("/\\s/"));
+    for (auto &option : sub_option_list) {  // timting options for one subtitle
+      boost::algorithm::split(option_data, option,
+                              [](char c) { return c == ':'; });
+      if (option_data.size() != 2) {
+        continue;
+      }
+      if ("shift" == option_data[0]) {
+        while (timings.size() <= index) timings.emplace_back();
+        try {
+          timings[index].shift = boost::lexical_cast<int64_t>(option_data[1]);
+        } catch (const boost::bad_lexical_cast &) {
+          timings[index].shift = 0;
+        }
+      } else if ("gap" == option_data[0]) {
+        while (timings.size() <= index) timings.emplace_back();
+        try {
+          timings[index].gap = boost::lexical_cast<size_t>(option_data[1]);
+        } catch (const boost::bad_lexical_cast &) {
+          timings[index].gap = 0;
+        }
+      }
+    }
+    index++;
+  }
+  return timings;
+}
+
 int check_arguments(
     int const argc, char const *const *const argv,
     std::map<
@@ -63,8 +113,14 @@ int check_arguments(
       "Output format")("verbose,v", po::bool_switch()
                                         ->default_value(false)
                                         ->implicit_value(true)
-                                        ->zero_tokens());
+                                        ->zero_tokens())(
+      "timing,t", po::value<vector<string>>()->multitoken(),
+      "space-separed timing commands for each inputs; separate "
+      "each input by comma.\ne.g: gap:100ms")(
+      "command,c", po::value<std::string>()->default_value("help"),
+      "The command");
   po::positional_options_description inputs_desc;
+  inputs_desc.add("command", 1);
   inputs_desc.add("input-files", -1);
 
   po::variables_map vm;
@@ -79,6 +135,13 @@ int check_arguments(
     std::cerr << "Unknown usage of this utility. Plase use --help for more "
                  "information on how to use this program."
               << "\nError: " << e.what() << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  // no command
+  if (!vm.count("command")) {
+    std::cerr << "Please specify a command. Use --help for more info."
+              << std::endl;
     return EXIT_FAILURE;
   }
 
@@ -154,7 +217,7 @@ std::vector<subman::document> load_inputs(
   using subman::document;
   namespace fs = boost::filesystem;
 
-  vector<document> inputs;
+  vector<subman::document> inputs;
   auto input_files = vm["input-files"].as<vector<string>>();
   auto is_recursive = vm["recursive"].as<bool>();
   auto verbose = vm["verbose"].as<bool>();
@@ -203,13 +266,19 @@ std::vector<subman::document> load_inputs(
     boost::algorithm::split(styles, data, [](char c) { return c == ','; });
   }
 
+  // handle --timing options and apply changes
+  vector<timing_options> timings;
+  if (vm.count("timing")) {
+    timings = transpile_timing_options(vm["timing"].as<string>());
+  }
+
   // reading the input files in a multithreaded environment:
   std::vector<std::thread> workers;
   std::mutex lock;
   size_t index = 0;
   for (string const &input_path : valid_input_files) {
     workers.emplace_back(
-        [&](auto const &path, string style) {
+        [&](auto const &path, string style, timing_options const &timing) {
           try {
             auto doc = subman::load(path);
 
@@ -250,16 +319,19 @@ std::vector<subman::document> load_inputs(
                 std::cout << "Style applyed: " << style << '\n' << std::endl;
               }
             }
+
+            if (timing.gap != 0) doc.gap(timing.gap);
+            if (timing.shift != 0) doc.shift(timing.shift);
+
             inputs.emplace_back(std::move(doc));
           } catch (std::exception const &e) {
             std::cerr << "Error: " << e.what() << std::endl;
           }
         },
-        input_path, styles.size() > index ? styles[index++] : "");
+        input_path, (styles.size() > index ? styles[index] : ""),
+        (timings.size() > index ? timings[index++] : timing_options{0, 0}));
   }
-  for (auto &worker : workers) {
-    worker.join();
-  }
+  for (auto &worker : workers) worker.join();
   workers.clear();
 
   if (inputs.empty()) {
@@ -282,6 +354,11 @@ int print_help(
   return EXIT_SUCCESS;
 }
 
+/**
+ * @brief merge two or more subtitles into one single subtitle
+ * @param vm
+ * @return
+ */
 int merge(boost::program_options::options_description const & /* desc */,
           boost::program_options::variables_map const &vm) noexcept {
   using std::map;
@@ -320,9 +397,6 @@ int merge(boost::program_options::options_description const & /* desc */,
 }
 
 auto main(int argc, char **argv) -> int {
-  namespace fs = boost::filesystem;
-  using subman::document;
-
   return check_arguments(argc, argv, {{"help", print_help}, {"merge", merge}},
                          print_help);
 }
