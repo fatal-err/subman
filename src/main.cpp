@@ -1,6 +1,3 @@
-#include "document.h"
-#include "formats/subrip.h"
-#include "utilities.h"
 #include <algorithm>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string_regex.hpp>
@@ -13,31 +10,36 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include "document.h"
+#include "formats/subrip.h"
+#include "utilities.h"
 
-auto main(int argc, char **argv) -> int {
+int check_arguments(
+    int const argc, char const *const *const argv,
+    std::map<
+        std::string,
+        std::function<int(boost::program_options::options_description const &,
+                          boost::program_options::variables_map const &)>> const
+        &actions,
+    std::function<int(boost::program_options::options_description const &,
+                      boost::program_options::variables_map const &)> const
+        &default_action) noexcept {
   namespace po = boost::program_options;
-  namespace fs = boost::filesystem;
-  using std::function;
-  using std::map;
-  using std::shared_ptr;
   using std::string;
   using std::vector;
-  using subman::document;
-
-  bool is_recursive, is_merge, is_forced, verbose;
-  vector<document> inputs;
-  map<string, document> outputs;
 
   po::options_description desc("SubMan (Subtitle Manager)");
   desc.add_options()("help,h", "Show this help page.")(
       "input-files,i", po::value<vector<string>>()->multitoken(),
-      "Input files")(
-      "force,f",
-      po::bool_switch(&is_forced)->default_value(false)->implicit_value(true),
-      "Force writing on existing files.")(
+      "Input files")("force,f",
+                     po::bool_switch()
+                         ->default_value(false)
+                         ->implicit_value(true)
+                         ->zero_tokens(),
+                     "Force writing on existing files.")(
       "output,o", po::value<vector<string>>()->multitoken(),
       "Output file path")("recursive,r",
-                          po::bool_switch(&is_recursive)
+                          po::bool_switch()
                               ->default_value(false)
                               ->implicit_value(true)
                               ->zero_tokens(),
@@ -49,7 +51,7 @@ auto main(int argc, char **argv) -> int {
       "    bottom2top\n"
       "    left2right\n"
       "    right2left")("merge,m",
-                        po::bool_switch(&is_merge)
+                        po::bool_switch()
                             ->default_value(false)
                             ->implicit_value(true)
                             ->zero_tokens(),
@@ -58,7 +60,7 @@ auto main(int argc, char **argv) -> int {
       "space-separated styles for each inputs; separate each input by comma."
       "\ne.g: normal, italics red, bold #00ff00")(
       "output-format,e", po::value<string>()->default_value("auto"),
-      "Output format")("verbose,v", po::bool_switch(&verbose)
+      "Output format")("verbose,v", po::bool_switch()
                                         ->default_value(false)
                                         ->implicit_value(true)
                                         ->zero_tokens());
@@ -80,30 +82,83 @@ auto main(int argc, char **argv) -> int {
     return EXIT_FAILURE;
   }
 
-  if (vm.count("help")) {
-    std::cout << desc << std::endl;
-    return EXIT_SUCCESS;
-  }
-
+  // we need this field
   if (!vm.count("input-files")) {
     std::cerr << "Please specify input files. Use --help for more information."
               << std::endl;
     return EXIT_FAILURE;
   }
+
+  // run the action
+  auto verbose = vm["verbose"].as<bool>();
+  for (auto const &action : actions) {
+    if (vm.count(action.first) > 0) {
+      if (verbose) std::cout << "Running " << action.first << std::endl;
+      return action.second(desc, vm);
+    }
+  }
+  return default_action(desc, vm);
+}
+
+/**
+ * @brief This function will write the outputs files
+ * @param vm
+ * @param outputs
+ */
+void write(boost::program_options::variables_map const &vm,
+           std::map<std::string, subman::document> const &outputs) noexcept {
+  using std::string;
+
+  auto is_forced = vm["force"].as<bool>();
+  auto verbose = vm["verbose"].as<bool>();
+  auto format = vm["output-format"].as<string>();
+
+  if (!outputs.empty()) {
+    for (auto const &output : outputs) {
+      try {
+        auto &path = output.first;
+        auto &doc = output.second;
+        if (!path.empty()) {
+          if (!is_forced && boost::filesystem::exists(path)) {
+            std::cerr << "Error: File '" + path + "' already exists."
+                      << std::endl;
+            continue;
+          }
+          if (verbose) {
+            std::cout << "Writing to file: " << path << std::endl;
+          }
+          subman::write(doc, path, format);
+        } else {  // printing to stdout
+          subman::formats::subrip::write(doc, std::cout);
+        }
+      } catch (std::invalid_argument const &err) {
+        std::cerr << err.what() << std::endl;
+      }
+    }
+  } else {
+    std::cerr << "There's nothing to do." << std::endl;
+  }
+}
+
+/**
+ * @brief This function will loads the input files and converts them into
+ * subman::document file
+ * @param vm
+ * @return a vector of subman::document
+ */
+std::vector<subman::document> load_inputs(
+    boost::program_options::variables_map const &vm) noexcept {
+  using std::function;
+  using std::string;
+  using std::vector;
+  using subman::document;
+  namespace fs = boost::filesystem;
+
+  vector<document> inputs;
   auto input_files = vm["input-files"].as<vector<string>>();
+  auto is_recursive = vm["recursive"].as<bool>();
+  auto verbose = vm["verbose"].as<bool>();
   std::vector<std::string> valid_input_files;
-  auto output_files = !vm.count("output") ? vector<string>()
-                                          : vm["output"].as<vector<string>>();
-  string smm = vm["merge-method"].as<string>();
-  subman::merge_method mm;
-  if ("bottom2top" == smm)
-    mm.direction = subman::merge_method_direction::BOTTOM_TO_TOP;
-  if ("left2right" == smm)
-    mm.direction = subman::merge_method_direction::LEFT_TO_RIGHT;
-  if ("right2left" == smm)
-    mm.direction = subman::merge_method_direction::RIGHT_TO_LEFT;
-  else
-    mm.direction = subman::merge_method_direction::TOP_TO_BOTTOM;
 
   // this function will load and add subtitles to the "documents" variable:
   function<void(string const &)> recursive_handler;
@@ -116,7 +171,7 @@ auto main(int argc, char **argv) -> int {
         if (fs::is_directory(child)) {
           recursive_handler(fs::absolute(child.path().string())
                                 .normalize()
-                                .string()); // handle subdirectories
+                                .string());  // handle subdirectories
           continue;
         }
       }
@@ -210,44 +265,64 @@ auto main(int argc, char **argv) -> int {
   if (inputs.empty()) {
     std::cout << "Cannot find any subtitle files. Please specify some!"
               << std::endl;
-    return EXIT_FAILURE;
   }
 
-  {
+  return inputs;
+}
 
-    // merge the documents into one single document:
-    auto doc = inputs[0];
-    for (auto it = std::begin(inputs) + 1; it != end(inputs); ++it) {
-      doc = subman::merge(doc, *it, mm);
-    }
-    outputs[output_files.empty() ? "" : output_files[0]] = doc;
-  }
+/**
+ * @brief print help
+ * @param desc
+ * @return
+ */
+int print_help(
+    boost::program_options::options_description const &desc,
+    boost::program_options::variables_map const & /* vm */) noexcept {
+  std::cout << desc << std::endl;
+  return EXIT_SUCCESS;
+}
 
-  auto format = vm["output-format"].as<string>();
-  if (!outputs.empty()) {
-    for (auto const &output : outputs) {
-      try {
-        auto &path = output.first;
-        auto &doc = output.second;
-        if (!path.empty()) {
-          if (!is_forced && boost::filesystem::exists(path)) {
-            std::cerr << "Error: File '" + path + "' already exists.";
-            continue;
-          }
-          if (verbose) {
-            std::cout << "Writing to file: " << path << std::endl;
-          }
-          subman::write(doc, path, format);
-        } else { // printing to stdout
-          subman::formats::subrip::write(doc, std::cout);
-        }
-      } catch (std::invalid_argument const &err) {
-        std::cerr << err.what() << std::endl;
-      }
-    }
-  } else {
-    std::cerr << "There's nothing to do." << std::endl;
+int merge(boost::program_options::options_description const & /* desc */,
+          boost::program_options::variables_map const &vm) noexcept {
+  using std::map;
+  using std::string;
+  using std::vector;
+  using subman::document;
+
+  map<string, document> outputs;
+  auto inputs = load_inputs(vm);
+  auto output_files = !vm.count("output") ? vector<string>()
+                                          : vm["output"].as<vector<string>>();
+
+  string smm = vm["merge-method"].as<string>();
+  subman::merge_method mm;
+
+  if ("bottom2top" == smm)
+    mm.direction = subman::merge_method_direction::BOTTOM_TO_TOP;
+  if ("left2right" == smm)
+    mm.direction = subman::merge_method_direction::LEFT_TO_RIGHT;
+  if ("right2left" == smm)
+    mm.direction = subman::merge_method_direction::RIGHT_TO_LEFT;
+  else
+    mm.direction = subman::merge_method_direction::TOP_TO_BOTTOM;
+
+  // merge the documents into one single document:
+  auto doc = inputs[0];
+  for (auto it = std::begin(inputs) + 1; it != end(inputs); ++it) {
+    doc = subman::merge(doc, *it, mm);
   }
+  outputs[output_files.empty() ? "" : output_files[0]] = doc;
+
+  // write the documents
+  write(vm, outputs);
 
   return EXIT_SUCCESS;
+}
+
+auto main(int argc, char **argv) -> int {
+  namespace fs = boost::filesystem;
+  using subman::document;
+
+  return check_arguments(argc, argv, {{"help", print_help}, {"merge", merge}},
+                         print_help);
 }
