@@ -115,7 +115,7 @@ int check_arguments(
       "styles,s",
       po::value<vector<string>>()->multitoken(),
       "space-separated styles for each inputs; separate each input by comma."
-      "\ne.g: normal, italics red, bold #00ff00")(
+      "\ne.g: normal, italic red, bold #00ff00")(
       "output-format,e",
       po::value<string>()->default_value("auto"),
       "Output format")("verbose,v",
@@ -307,27 +307,38 @@ load_inputs(boost::program_options::variables_map const& vm) noexcept {
               boost::algorithm::split_regex(tags, style, boost::regex("\\s+"));
               boost::algorithm::trim(style);
               boost::algorithm::to_lower(style);
-              if (style != "normal") {
-                bool bold = style == "bold" || style == "b";
-                bool italic = style == "italic" || style == "i";
-                bool underline = style == "underline" || style == "u";
-                bool fontsize = boost::starts_with(style, boost::regex("\\d"));
-                bool color = !bold && !italic && !underline && !fontsize;
-                if (bold || italic || underline || fontsize || color) {
-                  for (auto& sub : doc.subtitles) {
-                    if (bold) {
-                      sub.content.bold();
-                    } else if (italic) {
-                      sub.content.italic();
-                    } else if (underline) {
-                      sub.content.underline();
-                    } else if (fontsize) {
-                      sub.content.fontsize(style);
-                    } else {
-                      sub.content.color(style);
-                    }
-                  }
-                }
+              bool bold = false;
+              bool italic = false;
+              bool underline = false;
+              string fontsize = "";
+              string color = "";
+              for (auto const& tag : tags) {
+                if (tag == "normal") {
+                  bold = false;
+                  underline = false;
+                  italic = false;
+                } else if (tag == "b" || tag == "bold")
+                  bold = true;
+                else if (tag == "u" || tag == "underline")
+                  underline = true;
+                else if (tag == "i" || tag == "italic")
+                  italic = true;
+                else if (boost::starts_with(tag, boost::regex("\\d")))
+                  fontsize = tag;
+                else
+                  color = tag;
+              }
+              for (auto& sub : doc.subtitles) {
+                if (bold)
+                  sub.content.bold();
+                if (italic)
+                  sub.content.italic();
+                if (underline)
+                  sub.content.underline();
+                if (!fontsize.empty())
+                  sub.content.fontsize(fontsize);
+                if (!color.empty())
+                  sub.content.color(color);
               }
             }
 
@@ -373,7 +384,7 @@ load_inputs(boost::program_options::variables_map const& vm) noexcept {
  */
 int print_help(boost::program_options::options_description const& desc,
                boost::program_options::variables_map const& /* vm */) noexcept {
-  std::cout << "Usage: subman command [input-files...] [args...]\n"
+  std::cout << "Usage: subman command [input-files...] [args...]\n\n"
             << desc << std::endl;
   return EXIT_SUCCESS;
 }

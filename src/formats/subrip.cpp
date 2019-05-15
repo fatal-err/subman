@@ -157,35 +157,39 @@ std::string paint_style(styledstring sstr) noexcept {
   // the content that will be styled and returned
   std::string ncontent = content;
   std::string _start, _end;
-  size_t shift = 0;
+  size_t shift;
   auto size = content.size();
   auto attrs_end = std::end(attrs);
-  for (auto it = begin(attrs); it != attrs_end;) {
+  std::vector<std::pair<subman::range, subman::range>> shifts;
+  for (auto it = begin(attrs); it != attrs_end; it++) {
     auto const& attribute = *it;
     if (attribute.name == "b" || attribute.name == "u" ||
         attribute.name == "i") {
       _start = "<" + attribute.name + ">";
       _end = "</" + attribute.name + ">";
     } else if (attribute.name == "color") {
-      _start = "<font color=\"" + attribute.value +
-               "\">"; // TODO: make sure the value is correct
+      _start = "<font color=\"" + attribute.value + "\">";
       _end = "</font>";
     } else if (attribute.name == "fontsize") {
-      _start = "<font size=\"" + attribute.value +
-               "\">"; // TODO: make sure the value is correct
+      _start = "<font size=\"" + attribute.value + "\">";
       _end = "</font>";
     }
     auto finish = std::min(attribute.pos.finish, size);
+    shift = 0;
+    for (auto const& s : shifts) {
+      if (s.first.start <= attribute.pos.start)
+        shift += s.second.start;
+      if (s.first.finish <= attribute.pos.start)
+        shift += s.second.finish;
+    }
     ncontent.replace(
         attribute.pos.start + shift,
         finish - attribute.pos.start,
         _start +
             content.substr(attribute.pos.start, finish - attribute.pos.start) +
             _end);
-    shift += _start.size();
-    it++;
-    if (it != attrs_end && it->pos.start > finish)
-      shift += _end.size();
+    shifts.emplace_back(attribute.pos,
+                        subman::range{_start.size(), _end.size()});
   }
 
   return ncontent;
