@@ -1,0 +1,29 @@
+---
+# We'll use defaults from the LLVM style, but with 4 columns indentation.
+BasedOnStyle: LLVM
+IndentWidth: 2
+NamespaceIndentation: All
+AlwaysBreakTemplateDeclarations: Yes
+AlignTrailingComments: true
+FixNamespaceComments: true
+AllowAllParametersOfDeclarationOnNextLine: true
+#AllowAllConstructorInitializersOnNextLine: true
+AllowShortFunctionsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+BinPackArguments: false
+BinPackParameters: false
+BreakConstructorInitializers: BeforeColon
+ColumnLimit: 80
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+Cpp11BracedListStyle: true
+IncludeBlocks: Merge
+SortIncludes: true
+SortUsingDeclarations: true
+
+---
+Language: Cpp
+# Force pointers to the type for C++.
+DerivePointerAlignment: false
+PointerAlignment: Left
+

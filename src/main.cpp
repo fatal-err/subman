@@ -1,3 +1,6 @@
+#include "document.h"
+#include "formats/subrip.h"
+#include "utilities.h"
 #include <algorithm>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string_regex.hpp>
@@ -10,9 +13,6 @@
 #include <string>
 #include <thread>
 #include <vector>
-#include "document.h"
-#include "formats/subrip.h"
-#include "utilities.h"
 
 struct timing_options {
   size_t gap = 0;
@@ -28,33 +28,35 @@ std::vector<timing_options> transpile_timing_options(std::string options) {
   std::vector<std::string> option_list;
   std::vector<std::string> sub_option_list;
   std::vector<std::string> option_data;
-  boost::algorithm::split(option_list, options,
-                          [](char c) { return c == ','; });
+  boost::algorithm::split(
+      option_list, options, [](char c) { return c == ','; });
   size_t index = 0;
   std::vector<timing_options> timings;
-  for (auto &sub_option : option_list) {  // subtitle
+  for (auto& sub_option : option_list) { // subtitle
     sub_option_list.clear();
     boost::algorithm::trim(sub_option);
-    boost::algorithm::split_regex(sub_option_list, sub_option,
-                                  boost::regex("/\\s/"));
-    for (auto &option : sub_option_list) {  // timting options for one subtitle
-      boost::algorithm::split(option_data, option,
-                              [](char c) { return c == ':'; });
+    boost::algorithm::split_regex(
+        sub_option_list, sub_option, boost::regex("/\\s/"));
+    for (auto& option : sub_option_list) { // timting options for one subtitle
+      boost::algorithm::split(
+          option_data, option, [](char c) { return c == ':'; });
       if (option_data.size() != 2) {
         continue;
       }
       if ("shift" == option_data[0]) {
-        while (timings.size() <= index) timings.emplace_back();
+        while (timings.size() <= index)
+          timings.emplace_back();
         try {
           timings[index].shift = boost::lexical_cast<int64_t>(option_data[1]);
-        } catch (const boost::bad_lexical_cast &) {
+        } catch (const boost::bad_lexical_cast&) {
           timings[index].shift = 0;
         }
       } else if ("gap" == option_data[0]) {
-        while (timings.size() <= index) timings.emplace_back();
+        while (timings.size() <= index)
+          timings.emplace_back();
         try {
           timings[index].gap = boost::lexical_cast<size_t>(option_data[1]);
-        } catch (const boost::bad_lexical_cast &) {
+        } catch (const boost::bad_lexical_cast&) {
           timings[index].gap = 0;
         }
       }
@@ -65,36 +67,40 @@ std::vector<timing_options> transpile_timing_options(std::string options) {
 }
 
 int check_arguments(
-    int const argc, char const *const *const argv,
+    int const argc,
+    char const* const* const argv,
     std::map<
         std::string,
-        std::function<int(boost::program_options::options_description const &,
-                          boost::program_options::variables_map const &)>> const
-        &actions,
-    std::function<int(boost::program_options::options_description const &,
-                      boost::program_options::variables_map const &)> const
-        &default_action) noexcept {
+        std::function<int(boost::program_options::options_description const&,
+                          boost::program_options::variables_map const&)>> const&
+        actions,
+    std::function<int(boost::program_options::options_description const&,
+                      boost::program_options::variables_map const&)> const&
+        default_action) noexcept {
   namespace po = boost::program_options;
   using std::string;
   using std::vector;
 
   po::options_description desc("SubMan (Subtitle Manager)");
   desc.add_options()("help,h", "Show this help page.")(
-      "input-files,i", po::value<vector<string>>()->multitoken(),
+      "input-files,i",
+      po::value<vector<string>>()->multitoken(),
       "Input files")("force,f",
                      po::bool_switch()
                          ->default_value(false)
                          ->implicit_value(true)
                          ->zero_tokens(),
                      "Force writing on existing files.")(
-      "output,o", po::value<vector<string>>()->multitoken(),
+      "output,o",
+      po::value<vector<string>>()->multitoken(),
       "Output file path")("recursive,r",
                           po::bool_switch()
                               ->default_value(false)
                               ->implicit_value(true)
                               ->zero_tokens(),
                           "Recursively looking for input files.")(
-      "merge-method", po::value<string>()->default_value("top2bottom"),
+      "merge-method",
+      po::value<string>()->default_value("top2bottom"),
       "The style of merge method.\n"
       "  Values:\n"
       "    top2bottom\n"
@@ -106,18 +112,23 @@ int check_arguments(
                             ->implicit_value(true)
                             ->zero_tokens(),
                         "Merge subtitles into one subtitle")(
-      "styles,s", po::value<vector<string>>()->multitoken(),
+      "styles,s",
+      po::value<vector<string>>()->multitoken(),
       "space-separated styles for each inputs; separate each input by comma."
       "\ne.g: normal, italics red, bold #00ff00")(
-      "output-format,e", po::value<string>()->default_value("auto"),
-      "Output format")("verbose,v", po::bool_switch()
-                                        ->default_value(false)
-                                        ->implicit_value(true)
-                                        ->zero_tokens())(
-      "timing,t", po::value<vector<string>>()->multitoken(),
+      "output-format,e",
+      po::value<string>()->default_value("auto"),
+      "Output format")("verbose,v",
+                       po::bool_switch()
+                           ->default_value(false)
+                           ->implicit_value(true)
+                           ->zero_tokens())(
+      "timing,t",
+      po::value<vector<string>>()->multitoken(),
       "space-separed timing commands for each inputs; separate "
       "each input by comma.\ne.g: gap:100ms")(
-      "command,c", po::value<std::string>()->default_value("help"),
+      "command,c",
+      po::value<std::string>()->default_value("help"),
       "The command");
   po::positional_options_description inputs_desc;
   inputs_desc.add("command", 1);
@@ -131,7 +142,7 @@ int check_arguments(
                   .run(),
               vm);
     po::notify(vm);
-  } catch (std::exception const &e) {
+  } catch (std::exception const& e) {
     std::cerr << "Unknown usage of this utility. Plase use --help for more "
                  "information on how to use this program."
               << "\nError: " << e.what() << std::endl;
@@ -154,9 +165,10 @@ int check_arguments(
 
   // run the action
   auto verbose = vm["verbose"].as<bool>();
-  for (auto const &action : actions) {
+  for (auto const& action : actions) {
     if (vm.count(action.first) > 0) {
-      if (verbose) std::cout << "Running " << action.first << std::endl;
+      if (verbose)
+        std::cout << "Running " << action.first << std::endl;
       return action.second(desc, vm);
     }
   }
@@ -168,8 +180,8 @@ int check_arguments(
  * @param vm
  * @param outputs
  */
-void write(boost::program_options::variables_map const &vm,
-           std::map<std::string, subman::document> const &outputs) noexcept {
+void write(boost::program_options::variables_map const& vm,
+           std::map<std::string, subman::document> const& outputs) noexcept {
   using std::string;
 
   auto is_forced = vm["force"].as<bool>();
@@ -177,10 +189,10 @@ void write(boost::program_options::variables_map const &vm,
   auto format = vm["output-format"].as<string>();
 
   if (!outputs.empty()) {
-    for (auto const &output : outputs) {
+    for (auto const& output : outputs) {
       try {
-        auto &path = output.first;
-        auto &doc = output.second;
+        auto& path = output.first;
+        auto& doc = output.second;
         if (!path.empty()) {
           if (!is_forced && boost::filesystem::exists(path)) {
             std::cerr << "Error: File '" + path + "' already exists."
@@ -191,10 +203,10 @@ void write(boost::program_options::variables_map const &vm,
             std::cout << "Writing to file: " << path << std::endl;
           }
           subman::write(doc, path, format);
-        } else {  // printing to stdout
+        } else { // printing to stdout
           subman::formats::subrip::write(doc, std::cout);
         }
-      } catch (std::invalid_argument const &err) {
+      } catch (std::invalid_argument const& err) {
         std::cerr << err.what() << std::endl;
       }
     }
@@ -209,8 +221,8 @@ void write(boost::program_options::variables_map const &vm,
  * @param vm
  * @return a vector of subman::document
  */
-std::vector<subman::document> load_inputs(
-    boost::program_options::variables_map const &vm) noexcept {
+std::vector<subman::document>
+load_inputs(boost::program_options::variables_map const& vm) noexcept {
   using std::function;
   using std::string;
   using std::vector;
@@ -224,17 +236,17 @@ std::vector<subman::document> load_inputs(
   std::vector<std::string> valid_input_files;
 
   // this function will load and add subtitles to the "documents" variable:
-  function<void(string const &)> recursive_handler;
+  function<void(string const&)> recursive_handler;
   recursive_handler = [&](string input_path) {
     // check if the path is a directory and handle file loading:
     // we will go in trouble of checking if the user has passed "recursive"
     // option to the command line
     if (is_recursive && fs::is_directory(input_path)) {
-      for (auto &child : fs::directory_iterator(input_path)) {
+      for (auto& child : fs::directory_iterator(input_path)) {
         if (fs::is_directory(child)) {
           recursive_handler(fs::absolute(child.path().string())
                                 .normalize()
-                                .string());  // handle subdirectories
+                                .string()); // handle subdirectories
           continue;
         }
       }
@@ -251,7 +263,7 @@ std::vector<subman::document> load_inputs(
   };
 
   // read every input files/folders:
-  for (string const &input_path : input_files) {
+  for (string const& input_path : input_files) {
     if (!fs::exists(input_path)) {
       std::cerr << "File '" << input_path << "' does not exists." << std::endl;
       continue;
@@ -276,9 +288,9 @@ std::vector<subman::document> load_inputs(
   std::vector<std::thread> workers;
   std::mutex lock;
   size_t index = 0;
-  for (string const &input_path : valid_input_files) {
+  for (string const& input_path : valid_input_files) {
     workers.emplace_back(
-        [&](auto const &path, string style, timing_options const &timing) {
+        [&](auto const& path, string style, timing_options const& timing) {
           try {
             auto doc = subman::load(path);
 
@@ -295,7 +307,7 @@ std::vector<subman::document> load_inputs(
                 bool fontsize = boost::starts_with(style, boost::regex("\\d"));
                 bool color = !bold && !italic && !underline && !fontsize;
                 if (bold || italic || underline || fontsize || color) {
-                  for (auto &sub : doc.subtitles) {
+                  for (auto& sub : doc.subtitles) {
                     if (bold) {
                       sub.content.bold();
                     } else if (italic) {
@@ -320,18 +332,23 @@ std::vector<subman::document> load_inputs(
               }
             }
 
-            if (timing.gap != 0) doc.gap(timing.gap);
-            if (timing.shift != 0) doc.shift(timing.shift);
+            if (timing.gap != 0)
+              doc.gap(timing.gap);
+            if (timing.shift != 0)
+              doc.shift(timing.shift);
 
             inputs.emplace_back(std::move(doc));
-          } catch (std::exception const &e) {
+          } catch (std::exception const& e) {
             std::cerr << "Error: " << e.what() << std::endl;
           }
         },
-        input_path, (styles.size() > index ? styles[index] : ""),
-        (timings.size() > index ? timings[index++] : timing_options{0, 0}));
+        input_path,
+        (styles.size() > index ? styles[index] : ""),
+        (timings.size() > index ? timings[index] : timing_options{0, 0}));
+    index++;
   }
-  for (auto &worker : workers) worker.join();
+  for (auto& worker : workers)
+    worker.join();
   workers.clear();
 
   if (inputs.empty()) {
@@ -347,9 +364,8 @@ std::vector<subman::document> load_inputs(
  * @param desc
  * @return
  */
-int print_help(
-    boost::program_options::options_description const &desc,
-    boost::program_options::variables_map const & /* vm */) noexcept {
+int print_help(boost::program_options::options_description const& desc,
+               boost::program_options::variables_map const& /* vm */) noexcept {
   std::cout << desc << std::endl;
   return EXIT_SUCCESS;
 }
@@ -359,8 +375,8 @@ int print_help(
  * @param vm
  * @return
  */
-int merge(boost::program_options::options_description const & /* desc */,
-          boost::program_options::variables_map const &vm) noexcept {
+int merge(boost::program_options::options_description const& /* desc */,
+          boost::program_options::variables_map const& vm) noexcept {
   using std::map;
   using std::string;
   using std::vector;
@@ -396,7 +412,7 @@ int merge(boost::program_options::options_description const & /* desc */,
   return EXIT_SUCCESS;
 }
 
-auto main(int argc, char **argv) -> int {
-  return check_arguments(argc, argv, {{"help", print_help}, {"merge", merge}},
-                         print_help);
+auto main(int argc, char** argv) -> int {
+  return check_arguments(
+      argc, argv, {{"help", print_help}, {"merge", merge}}, print_help);
 }

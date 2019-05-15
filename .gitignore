@@ -1,6 +1,5 @@
 build/
 casts/
-.clang-format
 *.user
 **/*.user
 *.swp
