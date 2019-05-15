@@ -5,10 +5,10 @@
 
 // read from file
 template <typename SubtitleType>
-subman::document subman::load(std::istream &in) {
+subman::document subman::load(std::istream& in) {
   return SubtitleType::read(in);
 }
-subman::document subman::load(std::string const &path) {
+subman::document subman::load(std::string const& path) {
   if (!boost::filesystem::exists(path)) {
     throw std::invalid_argument("Error: File '" + path + "' does not exits.");
   }
@@ -26,10 +26,11 @@ subman::document subman::load(std::string const &path) {
 
 // write to file
 template <typename SubtitleType>
-void subman::write(const subman::document &doc, std::ostream &out) {
+void subman::write(const subman::document& doc, std::ostream& out) {
   SubtitleType::write(doc, out);
 }
-void subman::write(const subman::document &doc, std::string const &path,
+void subman::write(const subman::document& doc,
+                   std::string const& path,
                    std::string format) {
   std::ofstream out(path, std::ios::out);
   if (out.good()) {

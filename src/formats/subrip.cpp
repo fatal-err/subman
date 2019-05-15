@@ -13,7 +13,7 @@
 using namespace subman::formats;
 using subman::styledstring;
 
-styledstring transpile_html(std::string &&line) {
+styledstring transpile_html(std::string&& line) {
   static const std::regex tag_regex{"<([^>]+)>"};
   static const std::regex tag_name_regex{"^/?[A-z_-]+"};
   static const std::regex attributes_regex{
@@ -41,7 +41,8 @@ styledstring transpile_html(std::string &&line) {
       tag_name =
           tag_name.substr(1); // removing the first slash in the beggining
       for (it = std::rbegin(sstr.get_attrs());
-           it != std::rend(sstr.get_attrs()); it++) {
+           it != std::rend(sstr.get_attrs());
+           it++) {
         if (it->name == tag_name && it->pos.finish == line.size()) {
           it->pos.finish = position;
         }
@@ -57,8 +58,10 @@ styledstring transpile_html(std::string &&line) {
       else if ("font" == tag_name) {
         std::string attrs_data = tag_name_matcher.suffix().str();
         attr_data_iter = std::begin(attrs_data);
-        while (std::regex_search(attr_data_iter, std::cend(attrs_data),
-                                 attrs_matcher, attributes_regex)) {
+        while (std::regex_search(attr_data_iter,
+                                 std::cend(attrs_data),
+                                 attrs_matcher,
+                                 attributes_regex)) {
           attr_name = attrs_matcher[1];
           value = attrs_matcher[2];
           if ('\'' == value[0] || '"' == value[0])
@@ -83,7 +86,7 @@ styledstring transpile_html(std::string &&line) {
   return sstr;
 }
 
-std::string to_string(subman::duration const &timestamps) noexcept {
+std::string to_string(subman::duration const& timestamps) noexcept {
   auto from = timestamps.from, to = timestamps.to;
   std::stringstream buffer;
   uint64_t hour, min, sec, ns, tmp;
@@ -112,7 +115,7 @@ std::string to_string(subman::duration const &timestamps) noexcept {
   return buffer.str();
 }
 
-std::unique_ptr<subman::duration> to_duration(std::string const &str) noexcept {
+std::unique_ptr<subman::duration> to_duration(std::string const& str) noexcept {
   static const std::regex durstr{
       "([0-9]+):([0-9]+):([0-9]+),?([0-9]+)\\s*-+>\\s*([0-9]+):"
       "([0-9]+):([0-9]+),?([0-9]+)"};
@@ -143,8 +146,8 @@ std::string paint_style(styledstring sstr) noexcept {
   using std::begin;
   using std::end;
   using std::move;
-  auto &attrs = sstr.get_attrs();
-  std::string const &content = sstr.cget_content();
+  auto& attrs = sstr.get_attrs();
+  std::string const& content = sstr.cget_content();
   if (attrs.empty()) {
     return content;
   }
@@ -158,7 +161,7 @@ std::string paint_style(styledstring sstr) noexcept {
   auto size = content.size();
   auto attrs_end = std::end(attrs);
   for (auto it = begin(attrs); it != attrs_end;) {
-    auto const &attribute = *it;
+    auto const& attribute = *it;
     if (attribute.name == "b" || attribute.name == "u" ||
         attribute.name == "i") {
       _start = "<" + attribute.name + ">";
@@ -174,7 +177,8 @@ std::string paint_style(styledstring sstr) noexcept {
     }
     auto finish = std::min(attribute.pos.finish, size);
     ncontent.replace(
-        attribute.pos.start + shift, finish - attribute.pos.start,
+        attribute.pos.start + shift,
+        finish - attribute.pos.start,
         _start +
             content.substr(attribute.pos.start, finish - attribute.pos.start) +
             _end);
@@ -187,7 +191,7 @@ std::string paint_style(styledstring sstr) noexcept {
   return ncontent;
 }
 
-subman::document subrip::read(std::istream &stream) noexcept(false) {
+subman::document subrip::read(std::istream& stream) noexcept(false) {
   using subman::styledstring;
   if (stream) {
     document sub;
@@ -220,13 +224,13 @@ subman::document subrip::read(std::istream &stream) noexcept(false) {
   throw std::invalid_argument("Cannot read the content of the file.");
 }
 
-void subrip::write(subman::document const &sub,
-                   std::ostream &out) noexcept(false) {
+void subrip::write(subman::document const& sub,
+                   std::ostream& out) noexcept(false) {
   if (!out) {
     throw std::invalid_argument("Cannot write data into stream");
   }
   int i = 1;
-  for (const auto &v : sub.subtitles)
+  for (const auto& v : sub.subtitles)
     out << (i++) << '\n'
         << to_string(v.timestamps).c_str() << '\n'
         << paint_style(v.content) << "\n\n";

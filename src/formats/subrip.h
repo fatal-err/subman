@@ -6,17 +6,17 @@
 #include <string>
 
 namespace subman {
-namespace formats {
+  namespace formats {
 
-class subrip {
-public:
-  subrip() = delete;
-  static subman::document read(std::istream &stream) noexcept(false);
-  static void write(subman::document const &sub,
-                    std::ostream &out) noexcept(false);
-};
+    class subrip {
+    public:
+      subrip() = delete;
+      static subman::document read(std::istream& stream) noexcept(false);
+      static void write(subman::document const& sub,
+                        std::ostream& out) noexcept(false);
+    };
 
-} // namespace formats
+  } // namespace formats
 } // namespace subman
 
 #endif // FORMAT_SUBRIP_H

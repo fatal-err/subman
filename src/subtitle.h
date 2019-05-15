@@ -6,24 +6,25 @@
 
 namespace subman {
 
-/**
- * @brief The subtitle struct
- */
-struct subtitle {
-  mutable styledstring content;
-  duration timestamps;
+  /**
+   * @brief The subtitle struct
+   */
+  struct subtitle {
+    mutable styledstring content;
+    duration timestamps;
 
-  // copy constructor
-  subtitle(subtitle const &v) : content(v.content), timestamps(v.timestamps) {}
-  subtitle(styledstring content, duration const &timestamps);
+    // copy constructor
+    subtitle(subtitle const& v) : content(v.content), timestamps(v.timestamps) {
+    }
+    subtitle(styledstring content, duration const& timestamps);
 
-  bool operator<(subtitle const &) const;
-  bool operator>(subtitle const &) const;
-  bool operator==(subtitle const &) const;
-  bool operator!=(subtitle const &) const;
-  bool operator>=(subtitle const &) const;
-  bool operator<=(subtitle const &) const;
-};
+    bool operator<(subtitle const&) const;
+    bool operator>(subtitle const&) const;
+    bool operator==(subtitle const&) const;
+    bool operator!=(subtitle const&) const;
+    bool operator>=(subtitle const&) const;
+    bool operator<=(subtitle const&) const;
+  };
 
 } // namespace subman
 

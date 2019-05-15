@@ -6,28 +6,29 @@
 using namespace subman;
 
 merge_method_function_t
-merge_method::color(std::string const &_color) noexcept {
-  return [&](styledstring &sstr) {
+merge_method::color(std::string const& _color) noexcept {
+  return [&](styledstring& sstr) {
     sstr.color(subman::range{0, sstr.cget_content().size()}, _color);
   };
 }
 merge_method_function_t
-merge_method::fontsize(std::string const &_fontsize) noexcept {
-  return [&](styledstring &sstr) { sstr.fontsize(_fontsize); };
+merge_method::fontsize(std::string const& _fontsize) noexcept {
+  return [&](styledstring& sstr) { sstr.fontsize(_fontsize); };
 }
 
 merge_method_function_t merge_method::bold() noexcept {
-  return [](styledstring &sstr) { sstr.bold(); };
+  return [](styledstring& sstr) { sstr.bold(); };
 }
 merge_method_function_t underline() noexcept {
-  return [](styledstring &sstr) { sstr.underline(); };
+  return [](styledstring& sstr) { sstr.underline(); };
 }
 merge_method_function_t italic() noexcept {
-  return [](styledstring &sstr) { sstr.italic(); };
+  return [](styledstring& sstr) { sstr.italic(); };
 }
 
-styledstring merge_styledstring(styledstring const &first, styledstring second,
-                                merge_method const &mm) {
+styledstring merge_styledstring(styledstring const& first,
+                                styledstring second,
+                                merge_method const& mm) {
   // if (first.cget_content().find(second.cget_content()) != std::string::npos)
   // {
   //   return second;
@@ -35,12 +36,12 @@ styledstring merge_styledstring(styledstring const &first, styledstring second,
   // std::string::npos) {
   //   return first;
   // }
-  auto const &max_content = std::max(first, second);
+  auto const& max_content = std::max(first, second);
   auto max_len = max_content.cget_content().size();
   styledstring merged;
 
   // doing the functions:
-  for (auto &func : mm.functions)
+  for (auto& func : mm.functions)
     func(second);
 
   // directions:
@@ -67,7 +68,7 @@ styledstring merge_styledstring(styledstring const &first, styledstring second,
   return merged;
 }
 
-void document::put_subtitle(subtitle &&v, merge_method const &mm) {
+void document::put_subtitle(subtitle&& v, merge_method const& mm) {
   auto lower_bound = subtitles.lower_bound(v);
   auto end = std::end(subtitles);
   auto begin = std::begin(subtitles);
@@ -129,7 +130,8 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
     // first part
     if (outter.timestamps.from != inner.timestamps.from) {
       subtitles.emplace_hint(
-          next_sub, outter.content,
+          next_sub,
+          outter.content,
           duration{outter.timestamps.from, inner.timestamps.from});
     }
 
@@ -139,7 +141,8 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
     // the last part
     if (outter.timestamps.to != inner.timestamps.to) {
       subtitles.emplace_hint(
-          next_sub, outter.content,
+          next_sub,
+          outter.content,
           duration{inner.timestamps.to, outter.timestamps.to});
     }
 
@@ -165,20 +168,23 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
       //   first.content,
       //   duration{first.timestamps.from, second.timestamps.from}}, mm);
       subtitles.emplace_hint(
-          next_sub, first.content,
+          next_sub,
+          first.content,
           duration{first.timestamps.from, second.timestamps.from});
     }
 
     // middle part
     subtitles.emplace_hint(
-        next_sub, std::move(merged),
+        next_sub,
+        std::move(merged),
         duration{second.timestamps.from, first.timestamps.to});
 
     // the last part
     // we actually don't need this if statement. it's always true
     if (first.timestamps.to != second.timestamps.to) {
       subtitles.emplace_hint(
-          next_sub, second.content,
+          next_sub,
+          second.content,
           duration{first.timestamps.to, second.timestamps.to});
     }
 
@@ -190,7 +196,8 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
   if (v.timestamps < collided_subtitle->timestamps) {
     // inserting the first part
     subtitles.emplace_hint(
-        collided_subtitle, v.content,
+        collided_subtitle,
+        v.content,
         duration{v.timestamps.from, collided_subtitle->timestamps.from});
   }
   auto it = collided_subtitle;
@@ -208,37 +215,39 @@ void document::put_subtitle(subtitle &&v, merge_method const &mm) {
     subtitle_registery.emplace_back(v.content, duration{from, to});
   }
 
-  for (auto &sub : subtitle_registery) {
+  for (auto& sub : subtitle_registery) {
     put_subtitle(std::move(sub), mm);
   }
 
   if (it != end && v.timestamps.to > it->timestamps.to) {
     // inserting the last remmaning part
-    subtitles.emplace_hint(collided_subtitle, v.content,
+    subtitles.emplace_hint(collided_subtitle,
+                           v.content,
                            duration{it->timestamps.to, v.timestamps.to});
   }
 }
 
-void document::put_subtitle(const subtitle &v, merge_method const &mm) {
+void document::put_subtitle(const subtitle& v, merge_method const& mm) {
   put_subtitle(subtitle{v}, mm);
 }
 
 void document::replace_subtitle(decltype(subtitles)::iterator it,
-                                subtitle const &replacement) {
+                                subtitle const& replacement) {
   replace_subtitle(it, subtitle{replacement});
 }
 void document::replace_subtitle(decltype(subtitles)::iterator it,
-                                subtitle &&replacement) {
+                                subtitle&& replacement) {
   if (it != std::end(subtitles)) {
     auto next = std::next(it);
     subtitles.erase(it);
     subtitles.emplace_hint(next, std::move(replacement));
   }
 }
-document subman::merge(document const &sub1, document const &sub2,
-                       merge_method const &mm) {
+document subman::merge(document const& sub1,
+                       document const& sub2,
+                       merge_method const& mm) {
   document new_sub = sub1;
-  for (auto &v : sub2.subtitles) {
+  for (auto& v : sub2.subtitles) {
     new_sub.put_subtitle(v, mm);
   }
   return new_sub;
@@ -249,11 +258,11 @@ document subman::merge(document const &sub1, document const &sub2,
 // situation we had to do it in every single format. so we do it here, it's
 // not as performant as it should, but we'll be writing this once.
 void document::shift(int64_t s) {
-  std::for_each(std::begin(subtitles), std::end(subtitles),
-                [&](subman::subtitle sub) {
-                  sub.timestamps.shift(s);
-                  return sub;
-                });
+  std::for_each(
+      std::begin(subtitles), std::end(subtitles), [&](subman::subtitle sub) {
+        sub.timestamps.shift(s);
+        return sub;
+      });
 }
 
 void document::gap(size_t g) {
