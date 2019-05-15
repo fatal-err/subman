@@ -10,6 +10,7 @@
 #include <iostream>
 #include <map>
 #include <mutex>
+#include <numeric>
 #include <string>
 #include <thread>
 #include <vector>
@@ -81,6 +82,15 @@ int check_arguments(
   using std::string;
   using std::vector;
 
+  // join the keys in action so we can print them as a string
+  std::string possible_values =
+      std::accumulate(std::next(actions.cbegin()),
+                      actions.cend(),
+                      actions.cbegin()->first,
+                      [](std::string all, auto const& a) {
+                        return std::move(all) + ", " + a.first;
+                      });
+
   po::options_description desc("SubMan (Subtitle Manager)");
   desc.add_options()("help,h", "Show this help page.")(
       "input-files,i",
@@ -129,7 +139,7 @@ int check_arguments(
       "each input by comma.\ne.g: gap:100ms")(
       "command,c",
       po::value<std::string>()->default_value("help"),
-      "The command");
+      ("the command. possible values: " + possible_values).c_str());
   po::positional_options_description inputs_desc;
   inputs_desc.add("command", 1);
   inputs_desc.add("input-files", -1);
