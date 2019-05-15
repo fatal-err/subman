@@ -11,6 +11,7 @@ casts/
 *.anjuta
 *.kdev4
 .vscode/
+CMakeLists.txt.user.*
 
 # This file is used to ignore files which are generated
 # ----------------------------------------------------------------------------
