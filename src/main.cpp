@@ -156,22 +156,18 @@ int check_arguments(
     return EXIT_FAILURE;
   }
 
-  // we need this field
-  if (!vm.count("input-files")) {
-    std::cerr << "Please specify input files. Use --help for more information."
-              << std::endl;
-    return EXIT_FAILURE;
-  }
-
   // run the action
   auto verbose = vm["verbose"].as<bool>();
-  for (auto const& action : actions) {
-    if (vm.count(action.first) > 0) {
-      if (verbose)
-        std::cout << "Running " << action.first << std::endl;
-      return action.second(desc, vm);
-    }
+  auto command = vm["command"].as<string>();
+  auto action = actions.find(command);
+  if (action != std::end(actions)) {
+    if (verbose)
+      std::cout << "Running " << action->first << std::endl;
+    return action->second(desc, vm);
   }
+  if (verbose)
+    std::cout << "The specified command (" << command
+              << ") is undefined; running default operation." << std::endl;
   return default_action(desc, vm);
 }
 
@@ -230,9 +226,20 @@ load_inputs(boost::program_options::variables_map const& vm) noexcept {
   namespace fs = boost::filesystem;
 
   vector<subman::document> inputs;
+  auto verbose = vm["verbose"].as<bool>();
+
+  // we need this field
+  if (!vm.count("input-files")) {
+    if (verbose) {
+      std::cerr
+          << "Please specify input files. Use --help for more information."
+          << std::endl;
+    }
+    return inputs;
+  }
+
   auto input_files = vm["input-files"].as<vector<string>>();
   auto is_recursive = vm["recursive"].as<bool>();
-  auto verbose = vm["verbose"].as<bool>();
   std::vector<std::string> valid_input_files;
 
   // this function will load and add subtitles to the "documents" variable:
@@ -366,7 +373,8 @@ load_inputs(boost::program_options::variables_map const& vm) noexcept {
  */
 int print_help(boost::program_options::options_description const& desc,
                boost::program_options::variables_map const& /* vm */) noexcept {
-  std::cout << desc << std::endl;
+  std::cout << "Usage: subman command [input-files...] [args...]\n"
+            << desc << std::endl;
   return EXIT_SUCCESS;
 }
 
@@ -384,6 +392,11 @@ int merge(boost::program_options::options_description const& /* desc */,
 
   map<string, document> outputs;
   auto inputs = load_inputs(vm);
+  if (inputs.empty()) {
+    std::cerr << "There's no input file to work on. Please specify some."
+              << std::endl;
+    return EXIT_FAILURE;
+  }
   auto output_files = !vm.count("output") ? vector<string>()
                                           : vm["output"].as<vector<string>>();
 
