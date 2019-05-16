@@ -274,17 +274,19 @@ void document::shift(int64_t s) noexcept {
   subtitles = decltype(subtitles)(subs.begin(), subs.end());
 }
 
-void document::gap(size_t g) noexcept {
-  size_t m;
+#include <iostream>
+void document::gap(size_t gdiff) noexcept {
+  size_t diff;
   auto finishline = std::prev(std::end(subtitles));
   decltype(finishline) next;
   size_t each;
   for (auto it = std::begin(subtitles); it != finishline; it++) {
     next = std::next(it);
     if (next != finishline) {
-      m = it->timestamps.to - next->timestamps.from;
-      if (m < g) {
-        each = (g - m) / 2;
+      diff = static_cast<size_t>(static_cast<int64_t>(next->timestamps.from) -
+                                 static_cast<int64_t>(it->timestamps.to));
+      if (diff < gdiff) {
+        each = (gdiff - diff) / 2;
         auto current_item = *it;
         auto next_item = *next;
         current_item.timestamps.to -= each;

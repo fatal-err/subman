@@ -217,7 +217,7 @@ void write(boost::program_options::variables_map const& vm,
         auto& path = output.first;
         auto& doc = output.second;
         if (!path.empty() && path != "--") {
-          if (!is_forced && boost::filesystem::exists(path) ||
+          if ((!is_forced && boost::filesystem::exists(path)) ||
               (!override_files && *it == path)) {
             std::cerr << "Error: File '" + path + "' already exists."
                       << std::endl;
