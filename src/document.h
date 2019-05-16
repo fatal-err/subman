@@ -46,16 +46,17 @@ namespace subman {
     std::set<subtitle> subtitles;
 
     document() = default;
-    void put_subtitle(subtitle const& v, merge_method const& mm = {});
-    void put_subtitle(subtitle&& v, merge_method const& mm = {});
+    void put_subtitle(subtitle const& v, merge_method const& mm = {}) noexcept;
+    void put_subtitle(subtitle&& v, merge_method const& mm = {}) noexcept;
 
     void replace_subtitle(decltype(subtitles)::iterator it,
-                          subtitle const& replacement);
+                          subtitle const& replacement) noexcept;
     void replace_subtitle(decltype(subtitles)::iterator it,
-                          subtitle&& replacement);
+                          subtitle&& replacement) noexcept;
 
-    void gap(size_t g);
-    void shift(int64_t s);
+    void gap(size_t g) noexcept;
+    void shift(size_t s) noexcept;
+    void shift(int64_t s) noexcept;
   };
 
   /**
@@ -66,7 +67,7 @@ namespace subman {
    */
   document merge(document const& sub1,
                  document const& sub2,
-                 merge_method const& mm = {});
+                 merge_method const& mm = {}) noexcept;
 
 } // namespace subman
 

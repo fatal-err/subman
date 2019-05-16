@@ -217,7 +217,7 @@ void write(boost::program_options::variables_map const& vm,
         auto& path = output.first;
         auto& doc = output.second;
         if (!path.empty() && path != "--") {
-          if (!is_forced && boost::filesystem::exists(path) &&
+          if (!is_forced && boost::filesystem::exists(path) ||
               (!override_files && *it == path)) {
             std::cerr << "Error: File '" + path + "' already exists."
                       << std::endl;
@@ -519,10 +519,44 @@ int style(boost::program_options::options_description const& /* desc */,
   return EXIT_SUCCESS;
 }
 
+/**
+ * @brief append the input files into one single document
+ * @param vm
+ * @return
+ */
+int append(boost::program_options::options_description const& /* desc */,
+           boost::program_options::variables_map const& vm) noexcept {
+  auto inputs = load_inputs(vm);
+  auto output_files = vm.count("output")
+                          ? vm["output"].as<std::vector<std::string>>()
+                          : std::vector<std::string>();
+  auto output_file = output_files.empty() ? "--" : output_files.at(0);
+  if (inputs.empty()) {
+    std::cout << "We need some subtitles to work on. Specify some."
+              << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  auto output = std::move(inputs.at(0));
+  for (auto it = inputs.begin() + 1; it != inputs.end(); it++) {
+    it->shift(output.subtitles.rbegin()->timestamps.to);
+    output.subtitles.insert(std::make_move_iterator(it->subtitles.begin()),
+                            std::make_move_iterator(it->subtitles.end()));
+  }
+
+  std::map<std::string, subman::document> outputs;
+  outputs[std::move(output_file)] = std::move(output);
+  write(vm, outputs);
+
+  return EXIT_SUCCESS;
+}
+
 auto main(int argc, char** argv) -> int {
-  return check_arguments(
-      argc,
-      argv,
-      {{"help", print_help}, {"merge", merge}, {"style", style}},
-      print_help);
+  return check_arguments(argc,
+                         argv,
+                         {{"help", print_help},
+                          {"merge", merge},
+                          {"style", style},
+                          {"append", append}},
+                         print_help);
 }

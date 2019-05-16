@@ -22,19 +22,20 @@ namespace subman {
     duration(duration const& d) : from(d.from), to(d.to) {
     }
 
-    void reset();
-    void shift(int64_t n);
+    void reset() noexcept;
+    void shift(int64_t n) noexcept;
+    void shift(size_t n) noexcept;
     inline bool is_zero() const {
       return from == 0 && to == 0;
     }
-    bool in_between(duration const& v) const;
-    bool has_collide_with(duration const& v) const;
-    bool operator<(duration const&) const;
-    bool operator>(duration const&) const;
-    bool operator>=(duration const&) const;
-    bool operator<=(duration const&) const;
-    bool operator==(duration const&) const;
-    bool operator!=(duration const&) const;
+    bool in_between(duration const& v) const noexcept;
+    bool has_collide_with(duration const& v) const noexcept;
+    bool operator<(duration const&) const noexcept;
+    bool operator>(duration const&) const noexcept;
+    bool operator>=(duration const&) const noexcept;
+    bool operator<=(duration const&) const noexcept;
+    bool operator==(duration const&) const noexcept;
+    bool operator!=(duration const&) const noexcept;
 
     friend void swap(duration& a, duration& b) noexcept;
   };

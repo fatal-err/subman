@@ -28,7 +28,7 @@ merge_method_function_t italic() noexcept {
 
 styledstring merge_styledstring(styledstring const& first,
                                 styledstring second,
-                                merge_method const& mm) {
+                                merge_method const& mm) noexcept {
   // if (first.cget_content().find(second.cget_content()) != std::string::npos)
   // {
   //   return second;
@@ -68,7 +68,7 @@ styledstring merge_styledstring(styledstring const& first,
   return merged;
 }
 
-void document::put_subtitle(subtitle&& v, merge_method const& mm) {
+void document::put_subtitle(subtitle&& v, merge_method const& mm) noexcept {
   auto lower_bound = subtitles.lower_bound(v);
   auto end = std::end(subtitles);
   auto begin = std::begin(subtitles);
@@ -227,16 +227,17 @@ void document::put_subtitle(subtitle&& v, merge_method const& mm) {
   }
 }
 
-void document::put_subtitle(const subtitle& v, merge_method const& mm) {
+void document::put_subtitle(const subtitle& v,
+                            merge_method const& mm) noexcept {
   put_subtitle(subtitle{v}, mm);
 }
 
 void document::replace_subtitle(decltype(subtitles)::iterator it,
-                                subtitle const& replacement) {
+                                subtitle const& replacement) noexcept {
   replace_subtitle(it, subtitle{replacement});
 }
 void document::replace_subtitle(decltype(subtitles)::iterator it,
-                                subtitle&& replacement) {
+                                subtitle&& replacement) noexcept {
   if (it != std::end(subtitles)) {
     auto next = std::next(it);
     subtitles.erase(it);
@@ -245,7 +246,7 @@ void document::replace_subtitle(decltype(subtitles)::iterator it,
 }
 document subman::merge(document const& sub1,
                        document const& sub2,
-                       merge_method const& mm) {
+                       merge_method const& mm) noexcept {
   document new_sub = sub1;
   for (auto& v : sub2.subtitles) {
     new_sub.put_subtitle(v, mm);
@@ -257,15 +258,23 @@ document subman::merge(document const& sub1,
 // we could just shift stuff when we were loading things; but in that
 // situation we had to do it in every single format. so we do it here, it's
 // not as performant as it should, but we'll be writing this once.
-void document::shift(int64_t s) {
-  std::for_each(
-      std::begin(subtitles), std::end(subtitles), [&](subman::subtitle sub) {
-        sub.timestamps.shift(s);
-        return sub;
-      });
+void document::shift(size_t s) noexcept {
+  shift(static_cast<int64_t>(s));
 }
 
-void document::gap(size_t g) {
+void document::shift(int64_t s) noexcept {
+  std::vector<subman::subtitle> subs(subtitles.begin(), subtitles.end());
+  if (s < 0) {
+    for (auto& sub : subs)
+      sub.timestamps.shift(s);
+  } else {
+    for (auto& sub : subs)
+      sub.timestamps.shift(static_cast<size_t>(s));
+  }
+  subtitles = decltype(subtitles)(subs.begin(), subs.end());
+}
+
+void document::gap(size_t g) noexcept {
   size_t m;
   auto finishline = std::prev(std::end(subtitles));
   decltype(finishline) next;
