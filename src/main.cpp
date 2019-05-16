@@ -25,12 +25,14 @@ struct timing_options {
  * @param options
  * @return a vector of timing_options
  */
-std::vector<timing_options> transpile_timing_options(std::string options) {
+std::vector<timing_options>
+transpile_timing_options(std::vector<std::string> const& options) {
   std::vector<std::string> option_list;
   std::vector<std::string> sub_option_list;
   std::vector<std::string> option_data;
+  std::string soptions = boost::algorithm::join(options, " ");
   boost::algorithm::split(
-      option_list, options, [](char c) { return c == ','; });
+      option_list, soptions, [](char c) { return c == ','; });
   size_t index = 0;
   std::vector<timing_options> timings;
   for (auto& sub_option : option_list) { // subtitle
@@ -128,15 +130,27 @@ int check_arguments(
       "\ne.g: normal, italic red, bold #00ff00")(
       "output-format,e",
       po::value<string>()->default_value("auto"),
-      "Output format")("verbose,v",
-                       po::bool_switch()
-                           ->default_value(false)
-                           ->implicit_value(true)
-                           ->zero_tokens())(
+      "Output format")(
+      "style",
+      po::bool_switch()
+          ->default_value(false)
+          ->implicit_value(true)
+          ->zero_tokens(),
+      "It's command that will let you style the input file with the help of "
+      "--style or change the timings with --timing and etc.")(
+      "verbose,v",
+      po::bool_switch()
+          ->default_value(false)
+          ->implicit_value(true)
+          ->zero_tokens())(
       "timing,t",
       po::value<vector<string>>()->multitoken(),
       "space-separed timing commands for each inputs; separate "
-      "each input by comma.\ne.g: gap:100ms")(
+      "each input by comma.\ne.g: gap:100ms")("override",
+                                              po::bool_switch()
+                                                  ->default_value(false)
+                                                  ->implicit_value(true)
+                                                  ->zero_tokens())(
       "command,c",
       po::value<std::string>()->default_value("help"),
       ("the command. possible values: " + possible_values).c_str());
@@ -191,18 +205,23 @@ void write(boost::program_options::variables_map const& vm,
   using std::string;
 
   auto is_forced = vm["force"].as<bool>();
+  auto override_files = vm["override"].as<bool>();
   auto verbose = vm["verbose"].as<bool>();
   auto format = vm["output-format"].as<string>();
+  auto input_files = vm["input-files"].as<std::vector<string>>();
 
   if (!outputs.empty()) {
+    auto it = input_files.cbegin();
     for (auto const& output : outputs) {
       try {
         auto& path = output.first;
         auto& doc = output.second;
-        if (!path.empty()) {
-          if (!is_forced && boost::filesystem::exists(path)) {
+        if (!path.empty() && path != "--") {
+          if (!is_forced && boost::filesystem::exists(path) &&
+              (!override_files && *it == path)) {
             std::cerr << "Error: File '" + path + "' already exists."
                       << std::endl;
+            it++;
             continue;
           }
           if (verbose) {
@@ -211,10 +230,13 @@ void write(boost::program_options::variables_map const& vm,
           subman::write(doc, path, format);
         } else { // printing to stdout
           subman::formats::subrip::write(doc, std::cout);
+          std::cout << std::flush;
         }
       } catch (std::invalid_argument const& err) {
-        std::cerr << err.what() << std::endl;
+        if (verbose)
+          std::cerr << err.what() << std::endl;
       }
+      it++;
     }
   } else {
     std::cerr << "There's nothing to do." << std::endl;
@@ -298,7 +320,7 @@ load_inputs(boost::program_options::variables_map const& vm) noexcept {
   // handle --timing options and apply changes
   vector<timing_options> timings;
   if (vm.count("timing")) {
-    timings = transpile_timing_options(vm["timing"].as<string>());
+    timings = transpile_timing_options(vm["timing"].as<vector<string>>());
   }
 
   // reading the input files in a multithreaded environment:
@@ -327,11 +349,12 @@ load_inputs(boost::program_options::variables_map const& vm) noexcept {
                   bold = false;
                   underline = false;
                   italic = false;
-                } else if (tag == "b" || tag == "bold")
+                } else if (tag == "b" || tag == "bold" || tag == "strong")
                   bold = true;
-                else if (tag == "u" || tag == "underline")
+                else if (tag == "u" || tag == "underline" ||
+                         tag == "underlined")
                   underline = true;
-                else if (tag == "i" || tag == "italic")
+                else if (tag == "i" || tag == "italic" || tag == "italics")
                   italic = true;
                 else if (boost::starts_with(tag, boost::regex("\\d")))
                   fontsize = tag;
@@ -352,6 +375,11 @@ load_inputs(boost::program_options::variables_map const& vm) noexcept {
               }
             }
 
+            if (timing.gap != 0)
+              doc.gap(timing.gap);
+            if (timing.shift != 0)
+              doc.shift(timing.shift);
+
             std::unique_lock<std::mutex> my_lock(lock);
             if (verbose) {
               std::cout << "Document loaded: " << path << std::endl;
@@ -359,13 +387,8 @@ load_inputs(boost::program_options::variables_map const& vm) noexcept {
                 std::cout << "Style applyed: " << style << '\n' << std::endl;
               }
             }
-
-            if (timing.gap != 0)
-              doc.gap(timing.gap);
-            if (timing.shift != 0)
-              doc.shift(timing.shift);
-
             inputs.emplace_back(std::move(doc));
+
           } catch (std::exception const& e) {
             std::cerr << "Error: " << e.what() << std::endl;
           }
@@ -394,7 +417,7 @@ load_inputs(boost::program_options::variables_map const& vm) noexcept {
  */
 int print_help(boost::program_options::options_description const& desc,
                boost::program_options::variables_map const& /* vm */) noexcept {
-  std::cout << "Usage: subman command [input-files...] [args...]\n\n"
+  std::cout << "Usage: subman command [input-files...] [args...]\n"
             << desc << std::endl;
   return EXIT_SUCCESS;
 }
@@ -446,7 +469,60 @@ int merge(boost::program_options::options_description const& /* desc */,
   return EXIT_SUCCESS;
 }
 
+int style(boost::program_options::options_description const& /* desc */,
+          boost::program_options::variables_map const& vm) noexcept {
+  using std::string;
+  using std::vector;
+
+  auto input_files = vm["input-files"].as<vector<string>>();
+  bool override_files = vm["override"].as<bool>();
+  auto output_files = !vm.count("output")
+                          ? (override_files ? input_files : vector<string>())
+                          : vm["output"].as<vector<string>>();
+  auto inputs = load_inputs(vm);
+
+  if (inputs.empty()) {
+    std::cerr << "There's no subtitle to give style. Input one." << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  // making sure the output_files.size == input.size
+  if (output_files.size() > inputs.size()) {
+    output_files.erase(output_files.begin() + static_cast<long>(inputs.size()));
+  } else if (output_files.size() < inputs.size()) {
+    if (override_files) {
+      for (auto it =
+               input_files.begin() + static_cast<long>(output_files.size());
+           it != std::end(input_files);
+           it++) {
+        output_files.emplace_back(*it);
+      }
+    } else {
+      auto size = input_files.size() - output_files.size();
+      output_files.insert(output_files.end(), size, "--");
+    }
+  }
+
+  // converting inputs to outputs. the styles have already been done in the
+  // load_inputs function
+  std::map<string, subman::document> outputs;
+  std::transform(inputs.begin(),
+                 inputs.end(),
+                 std::inserter(outputs, outputs.end()),
+                 [ip = output_files.begin()](auto& input) mutable {
+                   return std::make_pair(std::move(*(ip++)), std::move(input));
+                 });
+
+  // write into their outputs
+  write(vm, outputs);
+
+  return EXIT_SUCCESS;
+}
+
 auto main(int argc, char** argv) -> int {
   return check_arguments(
-      argc, argv, {{"help", print_help}, {"merge", merge}}, print_help);
+      argc,
+      argv,
+      {{"help", print_help}, {"merge", merge}, {"style", style}},
+      print_help);
 }
