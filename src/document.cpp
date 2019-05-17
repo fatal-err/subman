@@ -274,7 +274,6 @@ void document::shift(int64_t s) noexcept {
   subtitles = decltype(subtitles)(subs.begin(), subs.end());
 }
 
-#include <iostream>
 void document::gap(size_t gdiff) noexcept {
   size_t diff;
   auto finishline = std::prev(std::end(subtitles));
