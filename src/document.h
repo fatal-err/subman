@@ -57,6 +57,21 @@ namespace subman {
     void gap(size_t g) noexcept;
     void shift(size_t s) noexcept;
     void shift(int64_t s) noexcept;
+
+    /**
+     * @brief returns a new document that their subtitles match the specified keyword
+     * @param keyword
+     * @return subman::document
+     */
+    document matches(std::string const& keyword) const noexcept;
+
+    /**
+     * @brief returns a new document containing only subtitles that their content contains the specified keyword
+     * @param keyword
+     * @return subman::document
+     */
+    document contains(std::string const& keyword) const noexcept;
+    document regex(std::string const& pattern ) const noexcept;
   };
 
   /**

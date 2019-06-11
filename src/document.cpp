@@ -2,6 +2,7 @@
 #include <boost/lexical_cast.hpp>
 #include <exception>
 #include <tuple>
+#include <regex>
 
 using namespace subman;
 
@@ -295,4 +296,31 @@ void document::gap(size_t gdiff) noexcept {
       }
     }
   }
+}
+
+
+document document::matches(std::string const& keyword) const noexcept {
+  document doc;
+  for (auto const& sub : subtitles)
+    if (sub.content.cget_content() == keyword)
+      doc.subtitles.insert(sub);
+    return doc;
+}
+
+document document::contains(std::string const& keyword) const noexcept {
+  document doc;
+  for (auto const& sub : subtitles)
+    if (sub.content.cget_content().find(keyword) != std::string::npos)
+      doc.subtitles.insert(sub);
+  return doc;
+}
+
+
+document document::regex(std::string const& pattern) const noexcept {
+  document doc;
+  std::regex r(pattern);
+  for (auto const& sub : subtitles)
+    if (std::regex_match(sub.content.cget_content(), r))
+      doc.subtitles.insert(sub);
+  return doc;
 }

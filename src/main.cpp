@@ -151,9 +151,14 @@ int check_arguments(
                                                   ->default_value(false)
                                                   ->implicit_value(true)
                                                   ->zero_tokens())(
-      "command,c",
+      "command",
       po::value<std::string>()->default_value("help"),
-      ("the command. possible values: " + possible_values).c_str());
+      ("the command. possible values: " + possible_values).c_str())
+          ("contains,c", po::value<std::vector<std::string>>()->multitoken(), "Search for subtitles that contain the specified values.")
+          ("matches,m", po::value<std::vector<std::string>>()->multitoken(),
+                  "Filter the results to those subtitles that match the specified values.")
+          ("regex", po::value<std::vector<std::string>>()->multitoken(),
+                  "Filter the results bases on those subtitles that match the specified regular expressions.");
   po::positional_options_description inputs_desc;
   inputs_desc.add("command", 1);
   inputs_desc.add("input-files", -1);
@@ -422,6 +427,57 @@ int print_help(boost::program_options::options_description const& desc,
   return EXIT_SUCCESS;
 }
 
+
+subman::merge_method get_merge_method(boost::program_options::variables_map const &vm) noexcept  {
+  auto smm = vm["merge-method"].as<std::string>();
+  subman::merge_method mm;
+
+  if ("bottom2top" == smm)
+    mm.direction = subman::merge_method_direction::BOTTOM_TO_TOP;
+  if ("left2right" == smm)
+    mm.direction = subman::merge_method_direction::LEFT_TO_RIGHT;
+  if ("right2left" == smm)
+    mm.direction = subman::merge_method_direction::RIGHT_TO_LEFT;
+  else
+    mm.direction = subman::merge_method_direction::TOP_TO_BOTTOM;
+
+  return mm;
+}
+
+int search(boost::program_options::options_description const&,
+        boost::program_options::variables_map const& vm) noexcept {
+    auto contains = vm.count("contains") ? vm["contains"].as<std::vector<std::string>>() : std::vector<std::string>();
+    auto matches = vm.count("matches") ? vm["matches"].as<std::vector<std::string>>() : std::vector<std::string>();
+    auto regexes = vm.count("regex") ? vm["regex"].as<std::vector<std::string>>() : std::vector<std::string>();
+
+    auto inputs = load_inputs(vm);
+    auto output_files = vm.count("output") ? vm["output"].as<std::vector<std::string>>() : std::vector<std::string>();
+    std::map<std::string, subman::document> outputs;
+    auto mm = get_merge_method(vm);
+
+    auto output_files_it = std::begin(output_files);
+    for (auto const &input : inputs) {
+        auto filtered = input; // copy the input
+        for (auto& m : matches)
+            filtered = filtered.matches(m);
+        for (auto &c : contains)
+            filtered = filtered.contains(c);
+        for (auto &r : regexes)
+            filtered = filtered.regex(r);
+
+        auto output_file = output_files_it == std::end(output_files) ? "" : *output_files_it;
+        if (outputs.find(output_file) == outputs.cend())
+          outputs[output_file] = std::move(filtered);
+        else
+          outputs[output_file] = subman::merge(outputs[output_file], filtered, mm);
+    }
+
+    // write to the outputs
+    write(vm, outputs);
+
+    return EXIT_SUCCESS;
+}
+
 /**
  * @brief merge two or more subtitles into one single subtitle
  * @param vm
@@ -441,20 +497,8 @@ int merge(boost::program_options::options_description const& /* desc */,
               << std::endl;
     return EXIT_FAILURE;
   }
-  auto output_files = !vm.count("output") ? vector<string>()
-                                          : vm["output"].as<vector<string>>();
-
-  string smm = vm["merge-method"].as<string>();
-  subman::merge_method mm;
-
-  if ("bottom2top" == smm)
-    mm.direction = subman::merge_method_direction::BOTTOM_TO_TOP;
-  if ("left2right" == smm)
-    mm.direction = subman::merge_method_direction::LEFT_TO_RIGHT;
-  if ("right2left" == smm)
-    mm.direction = subman::merge_method_direction::RIGHT_TO_LEFT;
-  else
-    mm.direction = subman::merge_method_direction::TOP_TO_BOTTOM;
+  auto output_files = vm.count("output") ? vm["output"].as<vector<string>>() : vector<string>();
+  auto mm = get_merge_method(vm);
 
   // merge the documents into one single document:
   auto doc = inputs[0];
@@ -557,6 +601,7 @@ auto main(int argc, char** argv) -> int {
                          {{"help", print_help},
                           {"merge", merge},
                           {"style", style},
-                          {"append", append}},
+                          {"append", append},
+                          {"search", search}},
                          print_help);
 }
