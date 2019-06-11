@@ -11,6 +11,8 @@ casts/
 *.kdev4
 .vscode/
 CMakeLists.txt.user.*
+cmake-build-debug/
+.idea/
 
 # This file is used to ignore files which are generated
 # ----------------------------------------------------------------------------
