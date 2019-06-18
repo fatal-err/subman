@@ -55,6 +55,7 @@ if(Boost_FOUND)
   #target_compile_options(${exec_name} PRIVATE "$<$<CONFIG:Release>:${SUBMAN_RELEASE_OPTIONS}>")
   #target_compile_options(${exec_name} PRIVATE "$<$<CONFIG:Debug>:${SUBMAN_DEBUG_OPTIONS}>")
 
+  install(TARGETS ${exec_name} DESTINATION bin)
 endif()
 
 
