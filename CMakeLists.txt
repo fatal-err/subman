@@ -5,6 +5,7 @@ set(exec_name subman)
 
 add_compile_options("-std=c++17")
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-pthread")
+set(CMAKE_USE_SYSTEM_CURL on)
 
 if(NOT CMAKE_BUILD_TYPE)
    set(CMAKE_BUILD_TYPE Debug

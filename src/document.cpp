@@ -1,8 +1,8 @@
 #include "document.h"
 #include <boost/lexical_cast.hpp>
 #include <exception>
-#include <tuple>
 #include <regex>
+#include <tuple>
 
 using namespace subman;
 
@@ -104,7 +104,7 @@ void document::put_subtitle(subtitle&& v, merge_method const& mm) noexcept {
   // both subtitles are in the same time but with different content;
   // so we change the content just for that subtitle
   if (collided_subtitle->timestamps == v.timestamps) {
-    collided_subtitle->content +=
+    collided_subtitle->content =
         merge_styledstring(collided_subtitle->content, v.content, mm);
     return;
   }
@@ -298,13 +298,12 @@ void document::gap(size_t gdiff) noexcept {
   }
 }
 
-
 document document::matches(std::string const& keyword) const noexcept {
   document doc;
   for (auto const& sub : subtitles)
     if (sub.content.cget_content() == keyword)
       doc.subtitles.insert(sub);
-    return doc;
+  return doc;
 }
 
 document document::contains(std::string const& keyword) const noexcept {
@@ -314,7 +313,6 @@ document document::contains(std::string const& keyword) const noexcept {
       doc.subtitles.insert(sub);
   return doc;
 }
-
 
 document document::regex(std::string const& pattern) const noexcept {
   document doc;

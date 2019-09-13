@@ -14,10 +14,10 @@ bool subtitle::operator>(subtitle const& v) const {
   return timestamps > v.timestamps;
 }
 bool subtitle::operator==(subtitle const& v) const {
-  return timestamps == v.timestamps && content == content;
+  return timestamps == v.timestamps && content == v.content;
 }
 bool subtitle::operator!=(subtitle const& v) const {
-  return timestamps != v.timestamps || content != content;
+  return timestamps != v.timestamps || content != v.content;
 }
 bool subtitle::operator>=(subtitle const& v) const {
   return timestamps >= v.timestamps;
