@@ -12,6 +12,7 @@
 #include <mutex>
 #include <numeric>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <vector>
 
@@ -19,6 +20,19 @@ struct timing_options {
   size_t gap = 0;
   int64_t shift = 0;
 };
+
+bool is_digit(char c) {
+  return c >= '0' && c <= '9';
+}
+
+std::string_view get_first_digits(std::string_view str) {
+  if (str.empty())
+    return str;
+  auto i = str.size() - 1;
+  while (i != 0 && !is_digit(str[i]))
+    i--;
+  return str.substr(0, i + 1);
+}
 
 /**
  * @brief transpile "--timing" values into timing_options struct
@@ -46,22 +60,25 @@ transpile_timing_options(std::vector<std::string> const& options) {
       if (option_data.size() != 2) {
         continue;
       }
-      if ("shift" == option_data[0]) {
-        while (timings.size() <= index)
-          timings.emplace_back();
-        try {
-          timings[index].shift = boost::lexical_cast<int64_t>(option_data[1]);
-        } catch (const boost::bad_lexical_cast&) {
-          timings[index].shift = 0;
+      while (timings.size() <= index)
+        timings.emplace_back();
+      try {
+        std::string_view time = option_data[1];
+        int64_t integer_val =
+            boost::lexical_cast<int64_t>(get_first_digits(time));
+        if (time.ends_with("sec") || time.ends_with("s")) {
+          integer_val *= 1000;
+        } else if (time.ends_with("min") || time.ends_with("m")) {
+          integer_val *= 1000 * 60;
         }
-      } else if ("gap" == option_data[0]) {
-        while (timings.size() <= index)
-          timings.emplace_back();
-        try {
-          timings[index].gap = boost::lexical_cast<size_t>(option_data[1]);
-        } catch (const boost::bad_lexical_cast&) {
-          timings[index].gap = 0;
+        if ("shift" == option_data[0]) {
+          timings[index].shift = integer_val;
+        } else if ("gap" == option_data[0]) {
+          timings[index].gap = boost::lexical_cast<size_t>(integer_val);
         }
+      } catch (const boost::bad_lexical_cast&) {
+        timings[index].shift = 0;
+        timings[index].gap = 0;
       }
     }
     index++;
@@ -146,19 +163,25 @@ int check_arguments(
       "timing,t",
       po::value<vector<string>>()->multitoken(),
       "space-separed timing commands for each inputs; separate "
-      "each input by comma.\ne.g: gap:100ms")("override",
-                                              po::bool_switch()
-                                                  ->default_value(false)
-                                                  ->implicit_value(true)
-                                                  ->zero_tokens())(
+      "each input by comma.\ne.g: gap:100ms\ne.g: shift:2s")(
+      "override",
+      po::bool_switch()
+          ->default_value(false)
+          ->implicit_value(true)
+          ->zero_tokens())(
       "command",
       po::value<std::string>()->default_value("help"),
-      ("the command. possible values: " + possible_values).c_str())
-          ("contains,c", po::value<std::vector<std::string>>()->multitoken(), "Search for subtitles that contain the specified values.")
-          ("matches,m", po::value<std::vector<std::string>>()->multitoken(),
-                  "Filter the results to those subtitles that match the specified values.")
-          ("regex", po::value<std::vector<std::string>>()->multitoken(),
-                  "Filter the results bases on those subtitles that match the specified regular expressions.");
+      ("the command. possible values: " + possible_values).c_str())(
+      "contains,c",
+      po::value<std::vector<std::string>>()->multitoken(),
+      "Search for subtitles that contain the specified values.")(
+      "matches,m",
+      po::value<std::vector<std::string>>()->multitoken(),
+      "Filter the results to those subtitles that match the specified values.")(
+      "regex",
+      po::value<std::vector<std::string>>()->multitoken(),
+      "Filter the results bases on those subtitles that match the specified "
+      "regular expressions.");
   po::positional_options_description inputs_desc;
   inputs_desc.add("command", 1);
   inputs_desc.add("input-files", -1);
@@ -380,22 +403,37 @@ load_inputs(boost::program_options::variables_map const& vm) noexcept {
               }
             }
 
-            if (timing.gap != 0)
+            if (timing.gap != 0) {
               doc.gap(timing.gap);
-            if (timing.shift != 0)
+              if (verbose) {
+                std::cout << "Document '" << path << "' gap: " << timing.gap
+                          << "ms\n";
+              }
+            } else if (verbose) {
+              std::cout << "Document '" << path << "' no gap\n";
+            }
+
+            if (timing.shift != 0) {
               doc.shift(timing.shift);
+              if (verbose) {
+                std::cout << "Document '" << path << "' shift: " << timing.shift
+                          << "ms\n";
+              }
+            } else if (verbose) {
+              std::cout << "Document '" << path << "' no shift\n";
+            }
 
             std::unique_lock<std::mutex> my_lock(lock);
             if (verbose) {
-              std::cout << "Document loaded: " << path << std::endl;
+              std::cout << "Document loaded: " << path << '\n';
               if (!style.empty()) {
-                std::cout << "Style applyed: " << style << '\n' << std::endl;
+                std::cout << "Style applyed: " << style << "\n\n";
               }
             }
             inputs.emplace_back(std::move(doc));
 
           } catch (std::exception const& e) {
-            std::cerr << "Error: " << e.what() << std::endl;
+            std::cerr << "Error: " << e.what() << '\n';
           }
         },
         input_path,
@@ -427,8 +465,8 @@ int print_help(boost::program_options::options_description const& desc,
   return EXIT_SUCCESS;
 }
 
-
-subman::merge_method get_merge_method(boost::program_options::variables_map const &vm) noexcept  {
+subman::merge_method
+get_merge_method(boost::program_options::variables_map const& vm) noexcept {
   auto smm = vm["merge-method"].as<std::string>();
   subman::merge_method mm;
 
@@ -445,37 +483,45 @@ subman::merge_method get_merge_method(boost::program_options::variables_map cons
 }
 
 int search(boost::program_options::options_description const&,
-        boost::program_options::variables_map const& vm) noexcept {
-    auto contains = vm.count("contains") ? vm["contains"].as<std::vector<std::string>>() : std::vector<std::string>();
-    auto matches = vm.count("matches") ? vm["matches"].as<std::vector<std::string>>() : std::vector<std::string>();
-    auto regexes = vm.count("regex") ? vm["regex"].as<std::vector<std::string>>() : std::vector<std::string>();
+           boost::program_options::variables_map const& vm) noexcept {
+  auto contains = vm.count("contains")
+                      ? vm["contains"].as<std::vector<std::string>>()
+                      : std::vector<std::string>();
+  auto matches = vm.count("matches")
+                     ? vm["matches"].as<std::vector<std::string>>()
+                     : std::vector<std::string>();
+  auto regexes = vm.count("regex") ? vm["regex"].as<std::vector<std::string>>()
+                                   : std::vector<std::string>();
 
-    auto inputs = load_inputs(vm);
-    auto output_files = vm.count("output") ? vm["output"].as<std::vector<std::string>>() : std::vector<std::string>();
-    std::map<std::string, subman::document> outputs;
-    auto mm = get_merge_method(vm);
+  auto inputs = load_inputs(vm);
+  auto output_files = vm.count("output")
+                          ? vm["output"].as<std::vector<std::string>>()
+                          : std::vector<std::string>();
+  std::map<std::string, subman::document> outputs;
+  auto mm = get_merge_method(vm);
 
-    auto output_files_it = std::begin(output_files);
-    for (auto const &input : inputs) {
-        auto filtered = input; // copy the input
-        for (auto& m : matches)
-            filtered = filtered.matches(m);
-        for (auto &c : contains)
-            filtered = filtered.contains(c);
-        for (auto &r : regexes)
-            filtered = filtered.regex(r);
+  auto output_files_it = std::begin(output_files);
+  for (auto const& input : inputs) {
+    auto filtered = input; // copy the input
+    for (auto& m : matches)
+      filtered = filtered.matches(m);
+    for (auto& c : contains)
+      filtered = filtered.contains(c);
+    for (auto& r : regexes)
+      filtered = filtered.regex(r);
 
-        auto output_file = output_files_it == std::end(output_files) ? "" : *output_files_it;
-        if (outputs.find(output_file) == outputs.cend())
-          outputs[output_file] = std::move(filtered);
-        else
-          outputs[output_file] = subman::merge(outputs[output_file], filtered, mm);
-    }
+    auto output_file =
+        output_files_it == std::end(output_files) ? "" : *output_files_it;
+    if (outputs.find(output_file) == outputs.cend())
+      outputs[output_file] = std::move(filtered);
+    else
+      outputs[output_file] = subman::merge(outputs[output_file], filtered, mm);
+  }
 
-    // write to the outputs
-    write(vm, outputs);
+  // write to the outputs
+  write(vm, outputs);
 
-    return EXIT_SUCCESS;
+  return EXIT_SUCCESS;
 }
 
 /**
@@ -497,7 +543,8 @@ int merge(boost::program_options::options_description const& /* desc */,
               << std::endl;
     return EXIT_FAILURE;
   }
-  auto output_files = vm.count("output") ? vm["output"].as<vector<string>>() : vector<string>();
+  auto output_files =
+      vm.count("output") ? vm["output"].as<vector<string>>() : vector<string>();
   auto mm = get_merge_method(vm);
 
   // merge the documents into one single document:
