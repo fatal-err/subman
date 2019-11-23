@@ -66,11 +66,24 @@ transpile_timing_options(std::vector<std::string> const& options) {
         std::string_view time = option_data[1];
         int64_t integer_val =
             boost::lexical_cast<int64_t>(get_first_digits(time));
-        if (time.ends_with("sec") || time.ends_with("s")) {
-          integer_val *= 1000;
-        } else if (time.ends_with("min") || time.ends_with("m")) {
+
+        // checking time
+        if (time.ends_with("ms") || time.ends_with("miliseconds")) {
+          // nothing to do, it's already in milliseconds
+        } else if (time.ends_with("min") || time.ends_with("m") ||
+                   time.ends_with("mins") || time.ends_with("minute") ||
+                   time.ends_with("minutes")) {
           integer_val *= 1000 * 60;
+        } else if (time.ends_with("hours") || time.ends_with("h") ||
+                   time.ends_with("hour") || time.ends_with("hr") ||
+                   time.ends_with("hrs")) {
+          integer_val *= 1000 * 60 * 60;
+        } else if (time.ends_with("sec") || time.ends_with("secs") ||
+                   time.ends_with("s") || time.ends_with("seconds") ||
+                   time.ends_with("second")) {
+          integer_val *= 1000;
         }
+
         if ("shift" == option_data[0]) {
           timings[index].shift = integer_val;
         } else if ("gap" == option_data[0]) {
