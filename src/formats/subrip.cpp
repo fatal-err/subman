@@ -223,6 +223,13 @@ subman::document subrip::read(std::istream& stream) noexcept(false) {
         // line which we just don't care.
       }
     }
+
+    // we repeat this because last subtitle may not have an empty line
+    if (line.empty()) {
+      if (dur && !content.empty()) {
+        sub.put_subtitle(subtitle{transpile_html(std::move(content)), *dur});
+      }
+    }
     return sub;
   }
   throw std::invalid_argument("Cannot read the content of the file.");
