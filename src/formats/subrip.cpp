@@ -174,7 +174,7 @@ std::string subman::formats::paint_style(styledstring sstr) noexcept {
       _start = "<font size=\"" + attribute.value + "\">";
       _end = "</font>";
     }
-    auto finish = std::min(attribute.pos.finish, ncontent.size());
+    // auto finish = std::min(attribute.pos.finish, ncontent.size());
 //    shift_start = 0;
 //    shift_end = 0;
 //    for (auto const& s : shifts) {
@@ -184,20 +184,21 @@ std::string subman::formats::paint_style(styledstring sstr) noexcept {
 //        shift += s.second.finish;
 //    }
     std::stringstream res;
-    res << _start << ncontent.substr(attribute.pos.start, finish - attribute.pos.start) << _end;
+    res << _start << ncontent.substr(attribute.pos.start, attribute.pos.finish - attribute.pos.start) << _end;
     ncontent.replace(
         attribute.pos.start /* + shift */,
-        finish - attribute.pos.start,
+        attribute.pos.finish - attribute.pos.start,
         res.str());
 //    shifts.emplace_back(attribute.pos,
 //                        subman::range{_start.size(), _end.size()});
 
       // shifting the attributes
+      it->pos.finish += _start.size();
       for (auto nit = std::next(it); nit != end(attrs); ++nit) {
         if (nit->pos.start > attribute.pos.start) {
           nit->pos.start += _start.size();
         }
-        if (nit->pos.start > attribute.pos.finish) {
+        if (nit->pos.start >= attribute.pos.finish) {
           nit->pos.start += _end.size();
         }
 
