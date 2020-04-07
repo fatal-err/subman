@@ -255,6 +255,15 @@ document subman::merge(document const& sub1,
   return new_sub;
 }
 
+void subman::merge_in_place(document& sub1,
+                       document const& sub2,
+                       merge_method const& mm) noexcept {
+  for (auto& v : sub2.subtitles) {
+    sub1.put_subtitle(v, mm);
+  }
+}
+
+
 // shifting stuff
 // we could just shift stuff when we were loading things; but in that
 // situation we had to do it in every single format. so we do it here, it's

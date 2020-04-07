@@ -563,7 +563,7 @@ int merge(boost::program_options::options_description const& /* desc */,
   // merge the documents into one single document:
   auto doc = inputs[0];
   for (auto it = std::begin(inputs) + 1; it != end(inputs); ++it) {
-    doc = subman::merge(doc, *it, mm);
+    subman::merge_in_place(doc, *it, mm);
   }
   outputs[output_files.empty() ? "" : output_files[0]] = doc;
 

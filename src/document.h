@@ -83,6 +83,9 @@ namespace subman {
   document merge(document const& sub1,
                  document const& sub2,
                  merge_method const& mm = {}) noexcept;
+  void merge_in_place(document& sub1,
+                                  document const& sub2,
+                                  merge_method const& mm = {}) noexcept;
 
 } // namespace subman
 
