@@ -5,8 +5,8 @@
 #include <regex>
 #include <string>
 
-namespace subman {
-  namespace formats {
+namespace subman::formats {
+    std::string paint_style(styledstring sstr) noexcept;
 
     class subrip {
     public:
@@ -16,7 +16,6 @@ namespace subman {
                         std::ostream& out) noexcept(false);
     };
 
-  } // namespace formats
-} // namespace subman
+} // namespace subman::formats
 
 #endif // FORMAT_SUBRIP_H

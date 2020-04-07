@@ -142,7 +142,7 @@ std::unique_ptr<subman::duration> to_duration(std::string const& str) noexcept {
   return nullptr;
 }
 
-std::string paint_style(styledstring sstr) noexcept {
+std::string subman::formats::paint_style(styledstring sstr) noexcept {
   using std::begin;
   using std::end;
   using std::move;
@@ -157,10 +157,10 @@ std::string paint_style(styledstring sstr) noexcept {
   // the content that will be styled and returned
   std::string ncontent = content;
   std::string _start, _end;
-  size_t shift;
+  //size_t shift_start, shift_end;
   auto size = content.size();
   auto attrs_end = std::end(attrs);
-  std::vector<std::pair<subman::range, subman::range>> shifts;
+  // std::vector<std::pair<subman::range, subman::range>> shifts;
   for (auto it = begin(attrs); it != attrs_end; it++) {
     auto const& attribute = *it;
     if (attribute.name == "b" || attribute.name == "u" ||
@@ -174,22 +174,40 @@ std::string paint_style(styledstring sstr) noexcept {
       _start = "<font size=\"" + attribute.value + "\">";
       _end = "</font>";
     }
-    auto finish = std::min(attribute.pos.finish, size);
-    shift = 0;
-    for (auto const& s : shifts) {
-      if (s.first.start <= attribute.pos.start)
-        shift += s.second.start;
-      if (s.first.finish <= attribute.pos.start)
-        shift += s.second.finish;
-    }
+    auto finish = std::min(attribute.pos.finish, ncontent.size());
+//    shift_start = 0;
+//    shift_end = 0;
+//    for (auto const& s : shifts) {
+//      if (s.first.start <= attribute.pos.start)
+//        shift_start += s.second.start;
+//      if (s.first.finish <= attribute.pos.start)
+//        shift += s.second.finish;
+//    }
+    std::stringstream res;
+    res << _start << ncontent.substr(attribute.pos.start, finish - attribute.pos.start) << _end;
     ncontent.replace(
-        attribute.pos.start + shift,
+        attribute.pos.start /* + shift */,
         finish - attribute.pos.start,
-        _start +
-            content.substr(attribute.pos.start, finish - attribute.pos.start) +
-            _end);
-    shifts.emplace_back(attribute.pos,
-                        subman::range{_start.size(), _end.size()});
+        res.str());
+//    shifts.emplace_back(attribute.pos,
+//                        subman::range{_start.size(), _end.size()});
+
+      // shifting the attributes
+      for (auto nit = std::next(it); nit != end(attrs); ++nit) {
+        if (nit->pos.start > attribute.pos.start) {
+          nit->pos.start += _start.size();
+        }
+        if (nit->pos.start > attribute.pos.finish) {
+          nit->pos.start += _end.size();
+        }
+
+        if (nit->pos.finish > attribute.pos.start) {
+          nit->pos.finish += _start.size();
+        }
+        if (nit->pos.finish > attribute.pos.finish) {
+          nit->pos.finish += _end.size();
+        }
+      }
   }
 
   return ncontent;
@@ -244,5 +262,5 @@ void subrip::write(subman::document const& sub,
   for (const auto& v : sub.subtitles)
     out << (i++) << '\n'
         << to_string(v.timestamps).c_str() << '\n'
-        << paint_style(v.content) << "\n\n";
+        << subman::formats::paint_style(v.content) << "\n\n";
 }

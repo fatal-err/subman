@@ -383,8 +383,8 @@ load_inputs(boost::program_options::variables_map const& vm) noexcept {
               bool bold = false;
               bool italic = false;
               bool underline = false;
-              string fontsize = "";
-              string color = "";
+              string fontsize;
+              string color;
               for (auto const& tag : tags) {
                 if (tag == "normal") {
                   bold = false;
@@ -440,7 +440,7 @@ load_inputs(boost::program_options::variables_map const& vm) noexcept {
             if (verbose) {
               std::cout << "Document loaded: " << path << '\n';
               if (!style.empty()) {
-                std::cout << "Style applyed: " << style << "\n\n";
+                std::cout << "Style applied: " << style << "\n\n";
               }
             }
             inputs.emplace_back(std::move(doc));
