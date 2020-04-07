@@ -258,7 +258,7 @@ document subman::merge(document const& sub1,
 // shifting stuff
 // we could just shift stuff when we were loading things; but in that
 // situation we had to do it in every single format. so we do it here, it's
-// not as performant as it should, but we'll be writing this once.
+// not as efficient as it should, but we'll be writing this once.
 void document::shift(size_t s) noexcept {
   shift(static_cast<int64_t>(s));
 }
