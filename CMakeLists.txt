@@ -50,7 +50,7 @@ if(Boost_FOUND)
     src/document.cpp
     src/utilities.cpp
     src/search.cpp
-    )
+          src/stats.cpp)
   target_link_libraries(${exec_name} PRIVATE ${Boost_LIBRARIES})
 
   # optimize the file size:

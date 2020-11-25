@@ -15,6 +15,7 @@
 #include <string_view>
 #include <thread>
 #include <vector>
+#include "stats.h"
 
 struct timing_options {
   size_t gap = 0;
@@ -573,6 +574,38 @@ int merge(boost::program_options::options_description const& /* desc */,
   return EXIT_SUCCESS;
 }
 
+
+
+int book(boost::program_options::options_description const& /* desc */,
+          boost::program_options::variables_map const& vm) noexcept {
+  using std::map;
+  using std::string;
+  using std::vector;
+  using subman::document;
+
+  map<string, document> outputs;
+  auto inputs = load_inputs(vm);
+  if (inputs.empty()) {
+    std::cerr << "There's no input file to work on. Please specify some."
+              << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  subman::stats _stats;
+  for (auto const& input : inputs) {
+    _stats.process(input);
+  }
+
+
+  for (auto const& word : _stats.words) {
+    cout <<
+  }
+
+  return EXIT_SUCCESS;
+}
+
+
+
 int style(boost::program_options::options_description const& /* desc */,
           boost::program_options::variables_map const& vm) noexcept {
   using std::string;
@@ -660,6 +693,7 @@ auto main(int argc, char** argv) -> int {
                          argv,
                          {{"help", print_help},
                           {"merge", merge},
+                          {"book", book},
                           {"style", style},
                           {"append", append},
                           {"search", search}},
